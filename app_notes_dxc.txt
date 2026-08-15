@@ -1,0 +1,41 @@
+Let's state the problem:
+1) qualys exports are stuctured Data (tables, headers) and will be frequently updata. (massive writes)
+2) cmdb on the other hand is "stable" (rare updates) but massive reads.
+
+these requirements will help deciding the database (storage) design and strategy.
+
+[1] first let's analyze data
+
+
+
+
+
+1/app features
+
+
+
+
+*rag chat client prompt -> router  (pdf-> chunk-> embedding model-> vetor db)
+*enriching csv file (mcp servers comments on images)
+*risk
+
+
+
+
+2/app performance
+
+*db indexing
+*cahing
+*bean scopes (composition relation)
+*if the vuln is patched, no need to keep the detection and cve
+*session based cach for cve intel
+
+
+3/ rag sys
+*on regroupe les cve desriptions (cached in redis when the user session begins) dans un text file pour faire le chunking par la suite
+
+ 
+
+
+
+
