@@ -6,6 +6,9 @@ import ma.dxc.app.FileProperties;
 import ma.dxc.app.dto.Hostdto;
 import ma.dxc.app.dto.Qiddto;
 import ma.dxc.app.dto.VulnInfoDto;
+import ma.dxc.app.entity.Host;
+import ma.dxc.app.entity.VulnInfo;
+import ma.dxc.app.service.OsTypeProcessor;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -51,11 +54,12 @@ public class BatchConfig {
     StaxEventItemReader<Object> multiEntityReader(Jaxb2Marshaller jaxb2Marshaller) {
 
         StaxEventItemReader<Object> staxEventReader = new StaxEventItemReader<>(jaxb2Marshaller);
-        staxEventReader.setFragmentRootElementNames(new String[]{"QID","VULN_INFO","HOST"});
+        staxEventReader.setFragmentRootElementNames(new String[]{"HOST"});
 
 
         return staxEventReader;
     }
+
 
 
     @Bean
@@ -81,11 +85,16 @@ public class BatchConfig {
 
 
     @Bean
-    public Step getStep(JobRepository jobRepository, MultiResourceItemReader<Object> multiResourceItemReader, PlatformTransactionManager transactionManager, ClassifierCompositeItemWriter<Object> classifier) {
+    public Step getStep(JobRepository jobRepository,
+                        MultiResourceItemReader<Object> multiResourceItemReader,
+                        PlatformTransactionManager transactionManager,
+                        ClassifierCompositeItemWriter<Object> classifier,
+                        OsTypeProcessor osTypeProcessor) {
         return new StepBuilder(jobRepository)
                 .chunk(100)
                 .transactionManager(transactionManager)
                 .reader(multiResourceItemReader)
+                .processor(osTypeProcessor)
                 .writer(classifier)
                 .build();
 
@@ -97,13 +106,13 @@ public class BatchConfig {
 
     @Bean
     public ClassifierCompositeItemWriter<Object> classifierWriter(
-            JpaItemWriter<Hostdto> hostWriter,
-            JpaItemWriter<VulnInfoDto> vulnWriter,
+            JpaItemWriter<Host> hostWriter,
+            JpaItemWriter<VulnInfo> vulnWriter,
             JpaItemWriter<Qiddto> qidWriter) {
 
         Classifier<Object, ItemWriter<? super Object>> classifier = item -> {
             if (item instanceof Hostdto)   return (ItemWriter) hostWriter;
-            if (item instanceof VulnInfoDto) return (ItemWriter) vulnWriter;
+            if (item instanceof VulnInfo) return (ItemWriter) vulnWriter;
             return (ItemWriter) qidWriter;
         };
 
@@ -113,13 +122,13 @@ public class BatchConfig {
     }
 
     @Bean
-    public JpaItemWriter<Hostdto> hostWriter(EntityManagerFactory emf) {
-        JpaItemWriter<Hostdto> w = new JpaItemWriter<>(emf);
+    public JpaItemWriter<Host> hostWriter(EntityManagerFactory emf) {
+        JpaItemWriter<Host> w = new JpaItemWriter<>(emf);
         return w;
     }
     @Bean
-    public JpaItemWriter<VulnInfoDto> vulnWriter(EntityManagerFactory emf) {
-        JpaItemWriter<VulnInfoDto> w = new JpaItemWriter<>(emf);
+    public JpaItemWriter<VulnInfo> vulnWriter(EntityManagerFactory emf) {
+        JpaItemWriter<VulnInfo> w = new JpaItemWriter<>(emf);
         return w;
     }
     @Bean
@@ -127,6 +136,7 @@ public class BatchConfig {
         JpaItemWriter<Qiddto> w = new JpaItemWriter<>(emf);
         return w;
     }
+
 
 }
 

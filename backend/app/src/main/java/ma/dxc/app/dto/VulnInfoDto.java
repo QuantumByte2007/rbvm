@@ -10,21 +10,20 @@ import ma.dxc.app.dto.adapter.InstantXmlAdapter;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ma.dxc.app.entity.Host;
 
 
 import java.time.Instant;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Entity
-@XmlRootElement(name = "VULN_INFO")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class VulnInfoDto {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
     private Long id;
     @XmlElement(name = "QID")
-    @OneToOne
+
     private Qiddto qid;
     @XmlElement(name = "TYPE")
     private String type;
@@ -44,10 +43,9 @@ public class VulnInfoDto {
     private long port;
     @XmlElement(name = "SERVICE")
     private String service;
-    @XmlElement(name = "SSL")
-    private boolean ssl;
-    @ManyToOne
-    @JoinColumn(name = "host_id")
-    private Hostdto host;
+//    @XmlElement(name = "SSL")
+//    @Column(name = "isssl")
+//    private boolean ssl;
+
 
 }
