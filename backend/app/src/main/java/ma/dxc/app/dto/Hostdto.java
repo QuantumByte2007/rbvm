@@ -20,6 +20,7 @@ public class Hostdto {
     private String dns;
     @XmlElement(name= "OPERATING_SYSTEM")
     private String os;
+    @XmlElementWrapper(name = "VULN_INFO_LIST")
     @XmlElement(name = "VULN_INFO")
     private List<VulnInfoDto> vulnInfoDtos;
 }

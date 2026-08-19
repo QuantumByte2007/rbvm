@@ -5,5 +5,6 @@ public enum Role {
     DATABASE_SERVER,
     IP_ROUTER,
     IP_SWITCH,
-    VS_LINUX_VMWARE
+    VS_LINUX_VMWARE,
+    UNKNOWN
 }

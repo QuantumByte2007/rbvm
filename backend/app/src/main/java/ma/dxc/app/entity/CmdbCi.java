@@ -16,8 +16,8 @@ public class CmdbCi {
     private String ciId;
     private String dns;
     private String ip;
-    @Enumerated(EnumType.STRING)
-    private CmdbStatus cmdbStatus;
+//    @Enumerated(EnumType.STRING)
+//    private CmdbStatus cmdbStatus;
     private String vlan;
     @Enumerated(EnumType.STRING)
     private Os os;

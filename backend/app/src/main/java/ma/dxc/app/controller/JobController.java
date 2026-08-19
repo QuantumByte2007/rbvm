@@ -4,6 +4,7 @@ package ma.dxc.app.controller;
 import ma.dxc.app.FileProperties;
 import ma.dxc.app.entity.Type;
 import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.job.JobInstance;
 import org.springframework.batch.core.job.parameters.InvalidJobParametersException;
 import org.springframework.batch.core.job.parameters.JobParameters;
 import org.springframework.batch.core.job.parameters.JobParametersBuilder;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/vi/job")
 
@@ -26,25 +29,27 @@ public class JobController {
     private FileProperties fileProperties;
     private final String path;
     private final JobOperator jobOperator;
-    private final Job jobInstnace;
-    private final Step step;
+    private final Map<String,Job> alljobs;
+//    private final Job jobInstnace;
+//    private final Step step;
     @PostMapping("/launchJob/{type}")
     ResponseEntity<?> launchJob(@PathVariable Type type) throws JobInstanceAlreadyCompleteException, InvalidJobParametersException, JobExecutionAlreadyRunningException, JobRestartException {
         JobParameters jobParameters = new JobParametersBuilder()
                 .addString("input", "file:"+ fileProperties.getBasePath()+"/"+type.name().toLowerCase()+"/"+type.name().toLowerCase()+"*.xml")
                 .addLong("time", System.currentTimeMillis())
                 .toJobParameters();
+        Job jobInstnace = alljobs.get(type.name().toLowerCase()+"Job");
         jobOperator.start(jobInstnace,jobParameters);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
 
-    public JobController(FileProperties fileProperties, JobOperator jobOperator, Job jobInstnace, Step step) {
+    public JobController(FileProperties fileProperties, JobOperator jobOperator, Map<String, Job> alljobs) {
         this.fileProperties = fileProperties;
         this.path = fileProperties.getBasePath();
         this.jobOperator = jobOperator;
-        this.jobInstnace = jobInstnace;
-        this.step = step;
+        this.alljobs = alljobs;
+
     }
 
 

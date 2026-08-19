@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//tmp/**)",
+      "Bash(javap -p -v dev/langchain4j/ollama/spring/AutoConfig.class)",
+      "Bash(javap -p -c dev/langchain4j/service/tool/DefaultToolExecutor.class)",
+      "Bash(./mvnw -q -o compile)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(javap -cp . 'dev.langchain4j.model.ollama.OllamaBaseChatModel$Builder')",
+      "Bash(javap -v -cp . 'dev.langchain4j.model.ollama.OllamaChatModel$OllamaChatModelBuilder')",
+      "Bash(./mvnw -o spring-boot:run > /c/Users/moham/AppData/Local/Temp/claude/C--Users-moham-Documents-scr-pfa/1a1563b1-d9ea-4b67-9162-37d4587586cf/scratchpad/app.log 2>&1)",
+      "Bash(./mvnw spring-boot:run)",
+      "Bash(break)",
+      "Bash(javap -cp . dev.langchain4j.http.client.jdk.JdkHttpClientBuilder)",
+      "Bash(curl -s -m 10 http://localhost:11434/api/tags)",
+      "Bash(curl -s -m 15 http://localhost:11434/api/show -d '{\"model\":\"mistral:7b\"}')",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('capabilities:', d.get\\('capabilities'\\)\\); print\\('family:', d.get\\('details',{}\\).get\\('family'\\)\\)\")",
+      "Bash(curl -s -m 180 http://localhost:11434/api/chat -H 'Content-Type: application/json' -d @/c/Users/moham/AppData/Local/Temp/claude/C--Users-moham-Documents-scr-pfa/1a1563b1-d9ea-4b67-9162-37d4587586cf/scratchpad/tool_test.json)",
+      "Bash(python -c ' *)"
+    ]
+  }
+}

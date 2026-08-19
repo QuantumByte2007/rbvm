@@ -5,5 +5,6 @@ public enum Env {
     QA,
     DEVELOPMENT,
     TEST,
-    PRODUCTION
+    PRODUCTION,
+    UNKNOWN
 }
