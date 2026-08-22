@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Upload</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+<h1>Upload de fichier</h1>
+
+<form id="upload-form" enctype="multipart/form-data">
+    <input type="file" id="file-input" name="file"/>
+    <button type="submit">Envoyer</button>
+</form>
+
+<pre id="out"></pre>
+
+<!-- Ordre important : api.js AVANT upload.js -->
+<script th:src="@{/js/api.js}"></script>
+<script th:src="@{/js/upload.js}"></script>
+</body>
+</html>

@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -36,7 +37,12 @@ public class PermFileStorageServiceimpl extends FileStorageUtil implements PermF
         }
         UUID uuid = UUID.randomUUID();
         // the next instruction will certainley break the SOLID principles
-        File f = new File(uuid,null,file.getSize(), detectMimeType(file),null, file.getOriginalFilename());
+        File f = null;
+        try {
+            f = new File(uuid,null,file.getSize(), detectMimeType(file),null, file.getOriginalFilename(),computeHash(file),false);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
         fileRepository.save(f);
         Path directory = buildFilePath();
         Path path = directory.resolve(uuid.toString()+getExtensionFromMimeType(detectMimeType(file)));

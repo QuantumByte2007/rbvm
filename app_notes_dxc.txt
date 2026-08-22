@@ -29,12 +29,28 @@ these requirements will help deciding the database (storage) design and strategy
 *bean scopes (composition relation)
 *if the vuln is patched, no need to keep the detection and cve
 *session based cach for cve intel
+*async jobs
 
 
 3/ rag sys
 *on regroupe les cve desriptions (cached in redis when the user session begins) dans un text file pour faire le chunking par la suite
 
  
+4/ problems detected : unrestricted file upload & latency problem
+
+        ---> By this I mean a user upload a file (cmdb or qualys) the app process the same files in the next upload.
+        how to get this straight?
+        I think of file hashes, storing file metadata in db.
+            *** One thing to consider is when to perform the hashing operation:
+            While uploading the file or while it s resting in the fileSystem
+
+
+        +++ Another critical problem is the latency while chating with the chatbot.
+        we should define clearly the problem, is it in llm , tools, db fetching ...?
+
+
+
+
 
 
 

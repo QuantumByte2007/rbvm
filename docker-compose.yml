@@ -1,0 +1,69 @@
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    restart: always
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: app-backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend:/app/uploads
+    env_file:
+      - .env
+    depends_on:
+      db:
+          condition: service_healthy
+      ollama:
+        condition: service_started
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_engine
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_FLASH_ATTENTION=1
+      - OLLAMA_KV_CACHE_TYPE=q8_0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
+    # 3. The Auto-Downloader
+  ollama-init:
+      image: ollama/ollama:latest
+      container_name: ollama_downloader
+      depends_on:
+        - ollama
+      environment:
+        # Tell this temporary container to talk to the main engine
+        - OLLAMA_HOST=ollama:11434
+      # Wait 5 seconds for the engine to start, then pull the model
+      entrypoint: [ "sh", "-c", "sleep 5 && ollama pull mistral:7b" ]
+
+volumes:
+      ollama_data:
+      postgres_data:
+      backend:
+

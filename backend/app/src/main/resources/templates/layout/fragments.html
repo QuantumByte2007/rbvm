@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+
+<!-- ===== HEAD commun ===== -->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${title}">App</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+    <!-- Token CSRF exposé pour HTMX (voir plus bas) -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+
+<!-- ===== NAVBAR ===== -->
+<nav th:fragment="navbar" class="navbar">
+    <span class="brand">Mon App</span>
+    <ul>
+        <!-- hx-get charge le fragment, hx-push-url met à jour l'URL -->
+        <li><a hx-get="/dashboard" hx-target="#content"
+               hx-push-url="true" href="/dashboard">Dashboard</a></li>
+        <li><a hx-get="/files" hx-target="#content"
+               hx-push-url="true" href="/files">Fichiers</a></li>
+        <!-- Lien visible seulement pour les ADMIN -->
+        <li sec:authorize="hasRole('ADMIN')">
+            <a hx-get="/users" hx-target="#content"
+               hx-push-url="true" href="/users">Utilisateurs</a>
+        </li>
+    </ul>
+    <div class="user-menu">
+        <span sec:authentication="name">user</span>
+        <form th:action="@{/logout}" method="post" style="display:inline">
+            <button type="submit">Déconnexion</button>
+        </form>
+    </div>
+</nav>
+
+<!-- ===== FOOTER ===== -->
+<footer th:fragment="footer" class="footer">
+    <p>© 2026 Mon App</p>
+</footer>
+
+</body>
+</html>
