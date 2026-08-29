@@ -1,0 +1,51 @@
+<div class="container" th:fragment="reconciliation-table">
+    <div class="row">
+        <div class="col-12">
+            <h1>Rapport de Réconciliation : Qualys vs CMDB</h1>
+
+            <table id="reconciliationTable" class="table table-hover responsive nowrap" style="width:100%">
+                <thead>
+                <tr>
+                    <th>DNS (Qualys)</th>
+                    <th>Environnement (CMDB)</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr th:each="asset : ${assets}">
+
+                    <!-- Colonne 1 : DNS -->
+                    <td>
+                        <a href="#">
+                            <div style="display: flex; align-items: center;">
+                                <div class="avatar avatar-blue mr-3"><i class="fa-solid fa-server"></i></div>
+                                <div class="info" style="margin-left: 10px;">
+                                    <p class="fw-bold mb-0" th:text="${asset[0]}">serveur.domaine.local</p>
+                                </div>
+                            </div>
+                        </a>
+                    </td>
+
+                    <!-- Colonne 2 : Environnement avec couleurs dynamiques -->
+                    <!-- On convertit l'Enum en String de manière sécurisée (fallback sur UNKNOWN si null) -->
+                    <td th:with="envValue=${asset[1] != null ? #strings.toString(asset[1]) : 'UNKNOWN'}">
+
+                        <div th:switch="${envValue}">
+                            <span th:case="'PRODUCTION'"  class="badge badge-env-prod">PRODUCTION</span>
+                            <span th:case="'STAGING'"     class="badge badge-env-staging">STAGING</span>
+                            <span th:case="'QA'"          class="badge badge-env-qa">QA</span>
+                            <span th:case="'DEVELOPMENT'" class="badge badge-env-dev">DEVELOPMENT</span>
+                            <span th:case="'TEST'"        class="badge badge-env-test">TEST</span>
+                            <span th:case="*"             class="badge badge-env-unknown">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i> UNKNOWN
+                        </span>
+                        </div>
+
+                    </td>
+
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

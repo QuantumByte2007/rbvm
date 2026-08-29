@@ -11,4 +11,8 @@ public class Upload {
     public String uploadPage(){
         return "upload";
     }
+    @GetMapping("/joblaunch")
+    public String getJobPage(){
+        return "pages/DataSources";
+    }
 }

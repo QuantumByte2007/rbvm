@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <h1>Fichiers</h1>
+    <button hx-post="/joblaunch/QUALYS" hx-target="#job-zone" class="btn btn-primary">
+        Lancer la digestion qualys
+    </button>
+    <div id="job-zone">
+    <div th:fragment="result" th:if="${message != null}">
+
+        <div th:if="${status == 'COMPLETED' or status == 'STARTED' or status == 'STARTING'}" class="alert alert-success">
+            <span th:text="${message}"></span>
+        </div>
+
+        <div th:if="${status == 'FAILED'}" class="alert alert-danger">
+            <span th:text="${message}"></span>
+        </div>
+
+    </div>
+    </div>
+    <!-- Le tableau est encore un sous-fragment séparé -->
+<!--    <div th:replace="~{partials/files-table :: table}"></div>-->
+</div>
+</body>
+</html>

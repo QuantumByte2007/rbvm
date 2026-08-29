@@ -2,6 +2,7 @@ package ma.dxc.app.service.fileService;
 
 
 import ma.dxc.app.FileProperties;
+import ma.dxc.app.entity.Type;
 import ma.dxc.app.repository.FileRepository;
 import org.apache.tika.Tika;
 import org.springframework.stereotype.Service;
@@ -44,7 +45,7 @@ public abstract class FileStorageUtil {
         return  getExtensionFromMimeType(tika.detect(in));}
     }
     //we probably need to compute file hash before writing on disk.
-    protected String computeHash(MultipartFile multipartFile) throws IOException, NoSuchAlgorithmException {
+    protected final String computeHash(MultipartFile multipartFile) throws IOException, NoSuchAlgorithmException {
         try(InputStream in = multipartFile.getInputStream()){
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] buffer = new byte[8192];
@@ -61,10 +62,15 @@ public abstract class FileStorageUtil {
             return HexFormat.of().formatHex(digest);
         }
     }
-    protected long writeOnDisk(MultipartFile multipartFile, Path destinationPath) throws IOException {
+    protected final long writeOnDisk(MultipartFile multipartFile, Path destinationPath) throws IOException {
         try(InputStream in = multipartFile.getInputStream()){
             return Files.copy(in,destinationPath, StandardCopyOption.REPLACE_EXISTING);
         }
+    }
+
+    protected String getFilePattern(Type type){
+        String normalizedType = type.name().toLowerCase();
+        return String.format("file:%s/%s/%s.*xml", rootPath,normalizedType,normalizedType);
     }
 
 

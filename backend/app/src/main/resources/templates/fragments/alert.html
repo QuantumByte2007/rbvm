@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+</head>
+<body>
+    <div th:fragment="alert" >
+        <div th:if="${status == 'COMPLETED'}" class="alert alert-success alert-dismissible">
+            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+            <span th:text="${message}"></span>
+        </div>
+
+        <div th:if="${status == 'FAILED'}" class="alert alert-danger alert-dismissible">
+            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+            <span th:text="${message}"></span>
+        </div>
+    </div>
+</body>
+</html>

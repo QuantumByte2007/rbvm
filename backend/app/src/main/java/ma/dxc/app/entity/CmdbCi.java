@@ -1,9 +1,6 @@
 package ma.dxc.app.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,6 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor @NoArgsConstructor
 public class CmdbCi {
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private String ciId;
     private String dns;
     private String ip;

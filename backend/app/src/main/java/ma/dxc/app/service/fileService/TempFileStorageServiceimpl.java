@@ -3,11 +3,13 @@ package ma.dxc.app.service.fileService;
 import ma.dxc.app.FileProperties;
 import ma.dxc.app.entity.File;
 import ma.dxc.app.entity.Type;
+import ma.dxc.app.execption.FileNotUploaded;
 import ma.dxc.app.execption.FileProcessedException;
 import ma.dxc.app.repository.FileRepository;
 import org.apache.commons.io.FileExistsException;
 import org.apache.tika.Tika;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -15,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -34,7 +37,45 @@ public class TempFileStorageServiceimpl extends FileStorageUtil implements TempF
     public Path buildFilePath(Type type) throws IOException {
         return Files.createDirectories(rootPath.resolve(type.name().toLowerCase()));
     }
+    public boolean getStatus(Type type) {
+        String normalizedType = type.name().toLowerCase();
+        boolean status = false;
 
+            Optional<File> opfile = fileRepository.getFileByName(normalizedType);
+            if (opfile.isPresent()) {
+                File file = opfile.get();
+                status = file.isProcessed();
+                return status;
+            }else {
+            throw new FileNotUploaded("please upload file first");}
+
+    }
+    @Transactional
+    @Override
+    public void process(Type type) {
+        String normalizedType = type.name().toLowerCase();
+        try {
+            Optional<File> opfile = fileRepository.getFileByName(normalizedType);
+            if(opfile.isPresent()){
+                File file = opfile.get();
+                if(!file.isProcessed()){
+                    file.setProcessed();
+                    fileRepository.save(file);
+                }   else {
+                throw new FileProcessedException();}
+
+            }
+            else { throw new FileNotUploaded("please upload file");}
+        } catch(Exception e){
+            throw new RuntimeException("File could not be processed, please retry or contact ADMIN",e);
+        }
+
+    }
+
+    @Override
+    public String getFilePattern(Type type) {
+        return super.getFilePattern(type);
+    }
 
     @Override
     public long store(MultipartFile file,Type type) throws IOException {
@@ -53,3 +94,6 @@ public class TempFileStorageServiceimpl extends FileStorageUtil implements TempF
         return writeOnDisk(file,path);
     }
 }
+
+//getFile().process().save().orElseThrow()
+//

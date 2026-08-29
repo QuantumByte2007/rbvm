@@ -130,10 +130,17 @@ public class BatchConfig {
 
     @Bean
     public JpaItemWriter<Host> hostWriter(EntityManagerFactory emf) {
-        return new JpaItemWriter<>(emf);
+        JpaItemWriter<Host> itemWriter = new JpaItemWriter<>(emf);
+        itemWriter.setUsePersist(true);
+
+        return itemWriter;
     }
     @Bean
     public JpaItemWriter<CmdbCi> cmdbCiJpaItemWriter(EntityManagerFactory emf){
-        return new JpaItemWriter<>(emf);
+
+        JpaItemWriter<CmdbCi> itemWriter = new JpaItemWriter<>(emf);
+        itemWriter.setUsePersist(true);
+
+        return itemWriter;
     }
 }

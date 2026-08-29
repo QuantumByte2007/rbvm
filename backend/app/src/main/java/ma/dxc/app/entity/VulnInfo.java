@@ -13,18 +13,22 @@ import java.time.Instant;
 @NoArgsConstructor
 public class VulnInfo {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 //    @OneToOne(cascade = CascadeType.ALL)
 //    private Qiddto qid;
     private String type;
     private Instant firstFound;
     private Instant lastFound;
+    private Instant lastfixed;
     private String Status;
     private int timesFound;
     private String protocol;
     private long port;
     private String service;
+    private Integer qds;
+    @Enumerated(value = EnumType.STRING)
+    private Severity severity;
     //    @XmlElement(name = "SSL")
 //    @Column(name = "isssl")
 //    private boolean ssl;

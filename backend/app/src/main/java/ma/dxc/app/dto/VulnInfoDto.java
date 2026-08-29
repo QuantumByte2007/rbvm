@@ -33,6 +33,9 @@ public class VulnInfoDto {
     @XmlElement(name = "LAST_FOUND")
     @XmlJavaTypeAdapter(InstantXmlAdapter.class)
     private Instant lastFound;
+    @XmlElement(name = "LAST_FIXED")
+    @XmlJavaTypeAdapter(InstantXmlAdapter.class)
+    private Instant lastFixed;
     @XmlElement(name = "VULN_STATUS")
     private String Status;
     @XmlElement(name = "TIMES_FOUND")
@@ -43,6 +46,8 @@ public class VulnInfoDto {
     private long port;
     @XmlElement(name = "SERVICE")
     private String service;
+    @XmlElement(name = "QDS")
+    private Integer qds;
 //    @XmlElement(name = "SSL")
 //    @Column(name = "isssl")
 //    private boolean ssl;

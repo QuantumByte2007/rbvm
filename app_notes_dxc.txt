@@ -50,6 +50,15 @@ these requirements will help deciding the database (storage) design and strategy
 
 
 
+5/Dashbord should display:
+        *Asset Classification based on Risk Score (black,red,..)
+        *Diagram de Sankey (impact flow)
+        *Stacked Area chart
+        *Other metrics (SLA, MTTR)
+        *Horizontal Stacked Bar Chart (chaque équipe et ses assets avec les critiques en rouge)
+        *Step Line Scatter Plot (pour les sla)
+
+
 
 
 

@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 public class OsTypeProcessor implements ItemProcessor<Hostdto, Host> {
     private final HostMapper hostMapper;
 
+    //completableFuture future = CompletableFuture.supplyAsync(()->)
+
     @Override
     public @Nullable Host process(Hostdto item) {
         return hostMapper.toEntity(item);
