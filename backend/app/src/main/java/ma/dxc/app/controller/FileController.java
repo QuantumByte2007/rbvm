@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @AllArgsConstructor
@@ -26,13 +27,13 @@ public class FileController {
     private final TempFileStorageService tempFileService;
 
     @PostMapping(value = "/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadFile(@RequestParam MultipartFile file) throws IOException {
-        return ResponseEntity.ok(fileService.store(file));
+    public CompletableFuture<ResponseEntity<?>> uploadFile(@RequestParam MultipartFile file) throws IOException {
+        return fileService.store(file).thenApply(ResponseEntity::ok);
     }
 
     @PostMapping("/tempfile/{type}")
-    public ResponseEntity<?> uploadCmdb(@CheckXml @RequestParam MultipartFile file, @PathVariable Type type) throws IOException {
-        return ResponseEntity.ok(tempFileService.store(file,type));
+    public CompletableFuture<ResponseEntity<?>> uploadCmdb(@CheckXml @RequestParam MultipartFile file, @PathVariable Type type) throws IOException {
+        return tempFileService.store(file,type).thenApply(ResponseEntity::ok);
     }
 
 

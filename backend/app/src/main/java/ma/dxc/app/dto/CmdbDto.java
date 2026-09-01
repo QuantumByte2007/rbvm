@@ -46,6 +46,8 @@ public class CmdbDto {
     private String soc;
     @XmlElement(name = "Antivirus")
     private String antivirus;
+    @XmlElement(name = "Standard_Patching")
+    private String standardPatching;
     @XmlElement(name = "Exception")
     private String exception;
 }

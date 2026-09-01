@@ -17,6 +17,7 @@ public class VulnInfo {
     private Long id;
 //    @OneToOne(cascade = CascadeType.ALL)
 //    private Qiddto qid;
+    private String qidValue;
     private String type;
     private Instant firstFound;
     private Instant lastFound;

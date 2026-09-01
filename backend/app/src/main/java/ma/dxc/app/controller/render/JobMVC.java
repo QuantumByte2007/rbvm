@@ -19,15 +19,20 @@ public class JobMVC {
     }
 
     @PostMapping("/joblaunch/{type}")
-    public String jobLaunch(Model model,
+    public CompletableFuture<String> jobLaunch(Model model,
     @PathVariable Type type,
     @RequestHeader(value = "HX-Request",required = false) String hx){
-        CompletableFuture<BatchStatus> status = jobService.launchJob(type);
-        model.addAttribute("message","Le job "+type +"a été lancé avec succées" );
-//        model.addAttribute("status",status.wait());
-        if("true".equals(hx)){
-        return "partials/datasource-content :: result";}
-        return "pages/DataSources";
+        // Returning the future (rather than discarding it, as before) lets Spring await
+        // it and route a failed launch (e.g. FileProcessedException) to
+        // ExceptionHandlerAdvice instead of always reporting fake success.
+        return jobService.launchJob(type).thenApply(status -> {
+            model.addAttribute("message", "Le job " + type + " a été lancé avec succès (" + status + ")");
+            model.addAttribute("status", status.toString());
+            if ("true".equals(hx)) {
+                return "partials/datasource-content :: result";
+            }
+            return "pages/DataSources";
+        });
     }
 
 

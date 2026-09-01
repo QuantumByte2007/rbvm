@@ -1,0 +1,104 @@
+\chapter*{Conclusion generale et perspectives}
+\addcontentsline{toc}{chapter}{Conclusion generale et perspectives}
+\markboth{Conclusion generale et perspectives}{Conclusion generale et perspectives}
+
+\section*{Bilan}
+\addcontentsline{toc}{section}{Bilan}
+
+Ce projet de fin d'annee a permis de concevoir et de realiser une plateforme
+qui transforme deux sources de donnees fragmentees -- exports Qualys et
+CMDB -- en un score de risque unique, contextualise et gouverne par des delais de
+remediation explicites. Le travail a couvert l'ensemble de la chaine, de l'ingestion
+asynchrone par lots des fichiers XML jusqu'a la restitution temps reel sous forme de
+tableau de bord, en passant par la formalisation et la demonstration mathematique
+complete du modele de risque (\cref{chap:modelisation}) : bornage et monotonie de
+l'ARS, coherence de la classification en cinq classes, comportement du MTTR pondere
+comme moyenne convexe verifiable, et modelisation du facteur de penalite operationnelle
+$\mathrm{Global\_I_{Ops}}$ de l'Enterprise Risk Score. Chacune de ces proprietes a
+ete verifiee numeriquement au \cref{chap:tests} sur des exemples complets, confirmant
+la coherence entre la specification, sa preuve mathematique et son implementation.
+
+Au-dela du moteur de calcul, le projet a egalement permis d'explorer des
+problematiques d'ingenierie logicielle a part entiere : traitement par lots
+robuste et idempotent avec Spring Batch, coherence transactionnelle d'une
+architecture evenementielle asynchrone, restitution temps reel via Server-Sent
+Events, et integration d'un assistant conversationnel fonde sur un modele de langage
+execute localement plutot que sur une dependance externe.
+
+\section*{Limites du travail realise}
+\addcontentsline{toc}{section}{Limites du travail realise}
+
+Plusieurs limites, assumees dans le cadre du perimetre defini
+(\cref{sec:perimetre}), meritent d'etre explicitement mentionnees :
+
+\begin{itemize}
+  \item La chaine de securite HTTP autorise actuellement toute requete sans
+  authentification (\texttt{permitAll}) : ce choix, adapte a un prototype
+  fonctionnel demontrable, n'est pas compatible avec un usage en production sur des
+  donnees aussi sensibles qu'un inventaire de vulnerabilites.
+  \item La strategie d'ingestion \emph{wipe-and-reingest} (\cref{sec:pipeline-ingestion})
+  simplifie considerablement le pipeline, mais empeche toute analyse d'evolution fine
+  de l'inventaire CMDB lui-meme (ajout/retrait de CI) independamment du recalcul de
+  risque.
+  \item Le facteur $\mathrm{Global\_I_{Ops}}$ de l'ERS, entierement specifie et
+  demontre au \cref{chap:modelisation}, n'est pas encore cable dans
+  \texttt{DashboardMetricsService} : l'indicateur affiche est aujourd'hui une simple
+  moyenne des ARS (\cref{sec:ecart-ers}).
+  \item L'assistant conversationnel (RAG), decrit au \cref{chap:realisation}, reste
+  au stade du developpement et de la conception : c'est un prototype fonctionnel, non
+  deploye en environnement de recette (\emph{staging}) ni valide par une campagne de
+  tests comparable a celle menee sur le moteur de risque (\cref{chap:tests}). Sa
+  latence, identifiee des la phase de cadrage comme un point de vigilance, n'a en
+  particulier pas fait l'objet d'un diagnostic instrumente permettant de determiner
+  precisement la part imputable au modele, aux outils invoques ou aux acces base de
+  donnees.
+\end{itemize}
+
+\section*{Perspectives}
+\label{sec:perspectives}
+\addcontentsline{toc}{section}{Perspectives}
+
+Plusieurs axes d'evolution decoulent directement du bilan precedent et du perimetre
+initialement ecarte :
+
+\begin{enumerate}
+  \item \textbf{Completer l'agregation ERS} en cablant le facteur
+  $\mathrm{Global\_I_{Ops}}$ (\cref{eq:iops}) : ceci suppose d'introduire une cible
+  SLA globale configurable et de comparer le $\mathrm{MTTR}_{global}$ mesure a cette
+  cible a chaque recalcul, pour exposer aux comites de securite l'indicateur complet
+  specifie.
+  \item \textbf{Introduire l'authentification et le controle d'acces par role
+  (RBAC)}, distinguant a minima le role Administrateur (import, configuration) du
+  role Analyste (consultation), en coherence avec la generalisation d'acteurs deja
+  identifiee au \cref{chap:analyse}.
+  \item \textbf{Historiser la CMDB} plutot que la remplacer integralement a chaque
+  import, pour permettre une analyse de tendance sur l'inventaire des actifs
+  eux-memes (croissance du parc, disparition d'actifs non decommissionnes
+  proprement), en complement de l'historique d'ARS deja assure par
+  \texttt{RiskSnapshot}.
+  \item \textbf{Renforcer la couverture de tests automatises} du moteur de risque,
+  en particulier des cas limites identifies par les preuves du
+  \cref{chap:modelisation} (saturation de l'ARS, absence de vulnerabilites, absence
+  de correspondance CMDB, classes de risque aux bornes exactes des seuils).
+  \item \textbf{Optimiser la latence de l'assistant RAG}, notamment via un cache
+  (Redis) des descriptions de CVE reutilisees d'une session a l'autre -- piste deja
+  identifiee lors du cadrage initial -- et via une instrumentation permettant de
+  distinguer le temps passe dans le modele, dans les outils et dans les acces base
+  de donnees.
+  \item \textbf{Notifier proactivement} les equipes proprietaires (email, messagerie
+  d'entreprise) des lors qu'un actif franchit le seuil de violation SLA
+  (\cref{eq:sla-status}), plutot que de s'appuyer uniquement sur la consultation
+  active du tableau de bord.
+  \item \textbf{Elargir les sources ingerees} au-dela de Qualys et d'un format de
+  CMDB unique, pour couvrir d'autres scanners de vulnerabilites et systemes de
+  gestion de configuration frequemment rencontres chez les clients de \organisme.
+  \item \textbf{Produire des exports de restitution} (rapport PDF ou tableur) a
+  destination des comites de securite periodiques, en particulier pour la revue des
+  actifs places en exception (\cref{eq:sla-status}), explicitement prevue par la
+  gouvernance mais non encore outillee.
+\end{enumerate}
+
+Ces perspectives ne remettent pas en cause le coeur du modele mathematique
+demontre dans ce rapport : elles en etendent la couverture operationnelle et
+consolident sa mise en production, dans la continuite directe du travail realise
+durant ce stage.

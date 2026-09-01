@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="dashboard">
+
+    <div class="page-header">
+        <span class="page-eyebrow">Risk overview</span>
+        <h1>Dashboard</h1>
+        <p class="page-subtitle">Live posture across every reconciled asset, updated as ingestion runs.</p>
+    </div>
+
+    <div class="notice notice-warning" id="weights-not-configured-warning" hidden>
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <div>Risk scores haven't been computed yet: configure
+            <a hx-get="/riskCalcul/role" hx-target="#content" hx-push-url="true" href="/riskCalcul/role">role</a> and
+            <a hx-get="/riskCalcul/env" hx-target="#content" hx-push-url="true" href="/riskCalcul/env">environment</a>
+            weights first, then re-run ingestion.
+        </div>
+    </div>
+
+    <div class="dashboard-hero">
+        <div class="ers-card">
+            <span class="ers-label">Enterprise Risk Score</span>
+            <div class="ers-value"><span id="ersValue">-</span><span class="ers-max">/1000</span></div>
+            <div class="ers-bar"><div class="ers-bar-fill" id="ersBarFill"></div></div>
+        </div>
+        <div class="risk-class-strip" id="riskClassStrip">
+            <div class="risk-class-card risk-class-black">
+                <span class="risk-class-count" id="countBLACK">-</span>
+                <span class="risk-class-name">Black</span>
+            </div>
+            <div class="risk-class-card risk-class-red">
+                <span class="risk-class-count" id="countRED">-</span>
+                <span class="risk-class-name">Red</span>
+            </div>
+            <div class="risk-class-card risk-class-orange">
+                <span class="risk-class-count" id="countORANGE">-</span>
+                <span class="risk-class-name">Orange</span>
+            </div>
+            <div class="risk-class-card risk-class-yellow">
+                <span class="risk-class-count" id="countYELLOW">-</span>
+                <span class="risk-class-name">Yellow</span>
+            </div>
+            <div class="risk-class-card risk-class-green">
+                <span class="risk-class-count" id="countGREEN">-</span>
+                <span class="risk-class-name">Green</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-chip-row" id="dashboard-stats">
+        <div class="stat-chip">
+            <span class="stat-chip-value"><span id="statMttr">-</span>d</span>
+            <span class="stat-chip-label">Weighted MTTR</span>
+        </div>
+        <div class="stat-chip">
+            <span class="stat-chip-value" id="statOnTrack">-</span>
+            <span class="stat-chip-label">On track</span>
+        </div>
+        <div class="stat-chip stat-chip-danger">
+            <span class="stat-chip-value" id="statViolated">-</span>
+            <span class="stat-chip-label">SLA violated</span>
+        </div>
+        <div class="stat-chip stat-chip-shadow">
+            <span class="stat-chip-value" id="statShadowIt">-</span>
+            <span class="stat-chip-label">Shadow IT</span>
+        </div>
+    </div>
+
+    <p class="dashboard-dnd-hint"><i class="fa-solid fa-arrows-up-down-left-right"></i> Drag a widget's header to
+        rearrange the dashboard - your layout is remembered on this device.</p>
+
+    <div class="dashboard-grid" id="dashboard-grid">
+        <div class="dashboard-widget" data-widget-id="classChart">
+            <div class="dashboard-widget-head"><i class="fa-solid fa-grip-vertical"></i><h4>Asset classification by risk score</h4></div>
+            <div class="dashboard-widget-body"><canvas id="classChart" height="220"></canvas></div>
+        </div>
+        <div class="dashboard-widget" data-widget-id="ownerChart">
+            <div class="dashboard-widget-head"><i class="fa-solid fa-grip-vertical"></i><h4>Assets per team (critical in red/black)</h4></div>
+            <div class="dashboard-widget-body"><canvas id="ownerChart" height="220"></canvas></div>
+        </div>
+        <div class="dashboard-widget dashboard-widget-wide" data-widget-id="sankeyChart">
+            <div class="dashboard-widget-head"><i class="fa-solid fa-grip-vertical"></i><h4>Impact flow: Environment &rarr; Role &rarr; Risk class</h4></div>
+            <div class="dashboard-widget-body"><canvas id="sankeyChart" height="180"></canvas></div>
+        </div>
+        <div class="dashboard-widget" data-widget-id="historyChart">
+            <div class="dashboard-widget-head"><i class="fa-solid fa-grip-vertical"></i><h4>Risk class counts over time</h4></div>
+            <div class="dashboard-widget-body"><canvas id="historyChart" height="220"></canvas></div>
+        </div>
+        <div class="dashboard-widget" data-widget-id="slaChart">
+            <div class="dashboard-widget-head"><i class="fa-solid fa-grip-vertical"></i><h4>SLA compliance: vulnerability age vs risk score</h4></div>
+            <div class="dashboard-widget-body">
+                <div class="sla-chart-panel">
+                    <div class="sla-chart-legend" id="slaChartLegend">
+                        <span><i style="background:#2ecc71"></i> On track</span>
+                        <span><i style="background:#e05260"></i> Violated</span>
+                        <span><i style="background:#95a5a6"></i> Accepted risk</span>
+                        <span><i class="sla-legend-dash"></i> SLA limit</span>
+                    </div>
+                    <canvas id="slaChart" height="260"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+    <script th:inline="none">
+        (function () {
+            var RISK_COLORS = {BLACK: '#343a40', RED: '#dc3545', ORANGE: '#fd7e14', YELLOW: '#ffc107', GREEN: '#28a745'};
+            var CLASS_ORDER = ['BLACK', 'RED', 'ORANGE', 'YELLOW', 'GREEN'];
+            // Ascending by ARS threshold. Populated from metrics.slaZones (the user's actual
+            // /riskCalcul/sla config) on every render - this default only covers the brief
+            // window before the first metrics response arrives.
+            var SLA_ZONES = [
+                {cls: 'GREEN', min: 0, slaDays: 90},
+                {cls: 'YELLOW', min: 200, slaDays: 30},
+                {cls: 'ORANGE', min: 400, slaDays: 15},
+                {cls: 'RED', min: 600, slaDays: 7},
+                {cls: 'BLACK', min: 700, slaDays: 2}
+            ];
+            var SLA_STATUS_COLORS = {ON_TRACK: '#2ecc71', VIOLATED: '#e05260', ACCEPTED_RISK: '#95a5a6'};
+            var charts = {};
+
+            function hexToRgba(hex, alpha) {
+                var r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+                return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+            }
+
+            function chart(id, config) {
+                var existing = window.Chart.getChart(id);
+                if (existing) {
+                    existing.destroy();
+                }
+                var ctx = document.getElementById(id);
+                if (!ctx) {
+                    return null;
+                }
+                return new window.Chart(ctx, config);
+            }
+
+            function renderClassChart(classCounts) {
+                var labels = CLASS_ORDER.filter(function (c) { return classCounts[c]; });
+                charts.classChart = chart('classChart', {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: labels.map(function (c) { return classCounts[c]; }),
+                            backgroundColor: labels.map(function (c) { return RISK_COLORS[c]; })
+                        }]
+                    }
+                });
+            }
+
+            function renderOwnerChart(ownerClassCounts) {
+                var owners = Object.keys(ownerClassCounts);
+                var datasets = CLASS_ORDER.map(function (c) {
+                    return {
+                        label: c,
+                        backgroundColor: RISK_COLORS[c],
+                        data: owners.map(function (o) { return (ownerClassCounts[o] || {})[c] || 0; })
+                    };
+                });
+                charts.ownerChart = chart('ownerChart', {
+                    type: 'bar',
+                    data: {labels: owners, datasets: datasets},
+                    options: {
+                        indexAxis: 'y',
+                        scales: {x: {stacked: true}, y: {stacked: true}}
+                    }
+                });
+            }
+
+            function linkColor(c) {
+                // Chart.js probes style-resolver callbacks (legend, caching, tooltip
+                // context) with a dataIndex that doesn't always map to real data -
+                // must not assume c.dataset.data[c.dataIndex] exists.
+                var item = c && c.dataset && c.dataset.data && c.dataset.data[c.dataIndex];
+                return (item && RISK_COLORS[item.to]) || '#6c757d';
+            }
+
+            function renderSankeyChart(links) {
+                if (!window.Chart.registry.controllers.get('sankey')) {
+                    return; // sankey plugin failed to load (offline CDN) - skip gracefully
+                }
+                charts.sankeyChart = chart('sankeyChart', {
+                    type: 'sankey',
+                    data: {
+                        datasets: [{
+                            label: 'Impact flow',
+                            data: links.map(function (l) { return {from: l.from, to: l.to, flow: l.value}; }),
+                            colorFrom: function (c) { return linkColor(c); },
+                            colorTo: function (c) { return linkColor(c); }
+                        }]
+                    }
+                });
+            }
+
+            function renderHistoryChart(history) {
+                var labels = history.map(function (h) { return new Date(h.computedAt).toLocaleString(); });
+                var series = ['black', 'red', 'orange', 'yellow', 'green'];
+                var datasets = series.map(function (s) {
+                    return {
+                        label: s.toUpperCase(),
+                        data: history.map(function (h) { return h[s]; }),
+                        backgroundColor: RISK_COLORS[s.toUpperCase()],
+                        borderColor: RISK_COLORS[s.toUpperCase()],
+                        fill: true,
+                        tension: 0.2
+                    };
+                });
+                charts.historyChart = chart('historyChart', {
+                    type: 'line',
+                    data: {labels: labels, datasets: datasets},
+                    options: {scales: {y: {stacked: true}}}
+                });
+            }
+
+            // Draws the risk-zone background bands + their labels behind the chart's
+            // datasets, positioned from the live x scale so they track zoom/resize.
+            var slaZonesPlugin = {
+                id: 'slaZones',
+                beforeDatasetsDraw: function (chart) {
+                    var xScale = chart.scales.x, yScale = chart.scales.y;
+                    if (!xScale || !yScale) return;
+                    var ctx = chart.ctx, area = chart.chartArea;
+                    ctx.save();
+                    SLA_ZONES.forEach(function (zone, i) {
+                        var nextMin = SLA_ZONES[i + 1] ? SLA_ZONES[i + 1].min : xScale.max;
+                        if (nextMin <= xScale.min || zone.min >= xScale.max) return;
+                        var left = xScale.getPixelForValue(Math.max(zone.min, xScale.min));
+                        var right = i === SLA_ZONES.length - 1 ? area.right : xScale.getPixelForValue(Math.min(nextMin, xScale.max));
+                        ctx.fillStyle = hexToRgba(RISK_COLORS[zone.cls], 0.16);
+                        ctx.fillRect(left, area.top, right - left, area.bottom - area.top);
+                        if (right - left > 40) {
+                            ctx.fillStyle = 'rgba(232,235,239,0.85)';
+                            ctx.font = '11px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'top';
+                            ctx.fillText(zone.cls, (left + right) / 2, area.top + 6);
+                        }
+                    });
+                    ctx.restore();
+                }
+            };
+
+            function slaStepData(xMax) {
+                var points = [];
+                SLA_ZONES.forEach(function (zone, i) {
+                    var nextMin = SLA_ZONES[i + 1] ? SLA_ZONES[i + 1].min : xMax;
+                    points.push({x: zone.min, y: zone.slaDays});
+                    points.push({x: nextMin, y: zone.slaDays});
+                });
+                return points;
+            }
+
+            function renderSlaChart(points) {
+                points = points.filter(function (p) { return p.ars != null && p.ageInDays != null; });
+                var dataMaxArs = points.reduce(function (m, p) { return Math.max(m, p.ars); }, 0);
+                var xMax = Math.max(1000, Math.ceil((Math.max(dataMaxArs, 700) * 1.15) / 100) * 100);
+                var dataMaxAge = points.reduce(function (m, p) { return Math.max(m, p.ageInDays); }, 0);
+                var yMax = Math.max(30, Math.ceil(Math.max(dataMaxAge, 15) / 10) * 10);
+
+                charts.slaChart = chart('slaChart', {
+                    type: 'scatter',
+                    data: {
+                        datasets: [
+                            {
+                                type: 'line',
+                                label: 'SLA limit',
+                                data: slaStepData(xMax),
+                                borderColor: '#e8ebef',
+                                borderWidth: 2,
+                                borderDash: [6, 4],
+                                pointRadius: 0,
+                                fill: false,
+                                tension: 0
+                            },
+                            {
+                                label: 'Hosts',
+                                data: points.map(function (p) {
+                                    return {x: p.ars, y: p.ageInDays, dns: p.dns, riskClass: p.riskClass, slaStatus: p.slaStatus};
+                                }),
+                                pointBackgroundColor: function (c) {
+                                    var raw = c.raw || {};
+                                    return SLA_STATUS_COLORS[raw.slaStatus] || SLA_STATUS_COLORS.ON_TRACK;
+                                },
+                                pointBorderColor: 'rgba(0,0,0,0.25)',
+                                pointRadius: 6,
+                                pointHoverRadius: 7,
+                                showLine: false
+                            }
+                        ]
+                    },
+                    plugins: [slaZonesPlugin],
+                    options: {
+                        layout: {padding: {top: 4}},
+                        scales: {
+                            x: {
+                                type: 'linear', min: 0, max: xMax,
+                                title: {display: true, text: 'Asset Risk Score (ARS) →', color: '#c3cad3'},
+                                ticks: {color: '#8b96a5'},
+                                grid: {color: 'rgba(255,255,255,0.06)'}
+                            },
+                            y: {
+                                min: 0, max: yMax,
+                                title: {display: true, text: 'Age in Days ↑', color: '#c3cad3'},
+                                ticks: {color: '#8b96a5'},
+                                grid: {color: 'rgba(255,255,255,0.06)'}
+                            }
+                        },
+                        plugins: {
+                            legend: {display: false},
+                            tooltip: {
+                                callbacks: {
+                                    label: function (c) {
+                                        var raw = c.raw || {};
+                                        if (raw.dns === undefined) return 'SLA limit: ' + c.parsed.y + 'd';
+                                        return [raw.dns, 'ARS ' + c.parsed.x.toFixed(0) + ', age ' + c.parsed.y.toFixed(1) + 'd',
+                                            (raw.riskClass || '-') + ' / ' + (raw.slaStatus || '-')];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function renderStats(metrics) {
+                var mttrEl = document.getElementById('statMttr');
+                var onTrackEl = document.getElementById('statOnTrack');
+                var violatedEl = document.getElementById('statViolated');
+                var shadowEl = document.getElementById('statShadowIt');
+                if (mttrEl) mttrEl.textContent = metrics.weightedMttrDays != null ? metrics.weightedMttrDays.toFixed(1) : '-';
+                if (onTrackEl) onTrackEl.textContent = (metrics.slaStatusCounts || {}).ON_TRACK || 0;
+                if (violatedEl) violatedEl.textContent = (metrics.slaStatusCounts || {}).VIOLATED || 0;
+                if (shadowEl) shadowEl.textContent = metrics.shadowItCount || 0;
+            }
+
+            function renderErs(ers) {
+                var valueEl = document.getElementById('ersValue');
+                var fillEl = document.getElementById('ersBarFill');
+                if (valueEl) valueEl.textContent = ers != null ? Math.round(ers) : '-';
+                if (fillEl) {
+                    var pct = ers != null ? Math.max(0, Math.min(100, ers / 10)) : 0;
+                    fillEl.style.width = pct + '%';
+                    var color = RISK_COLORS.GREEN;
+                    for (var i = 0; i < SLA_ZONES.length; i++) {
+                        if ((ers || 0) >= SLA_ZONES[i].min) color = RISK_COLORS[SLA_ZONES[i].cls];
+                    }
+                    fillEl.style.background = color;
+                }
+            }
+
+            function renderRiskClassStrip(classCounts) {
+                CLASS_ORDER.forEach(function (c) {
+                    var el = document.getElementById('count' + c);
+                    if (el) el.textContent = classCounts[c] || 0;
+                });
+            }
+
+            function safely(name, fn) {
+                try {
+                    fn();
+                } catch (err) {
+                    console.error('Dashboard widget "' + name + '" failed to render', err);
+                }
+            }
+
+            function renderConfigWarning(metrics) {
+                var warning = document.getElementById('weights-not-configured-warning');
+                if (warning) warning.hidden = !!metrics.weightsConfigured;
+            }
+
+            function render(metrics) {
+                if (metrics.slaZones && metrics.slaZones.length) {
+                    SLA_ZONES = metrics.slaZones.map(function (z) {
+                        return {cls: z.riskClass, min: z.minArs, slaDays: z.slaDays};
+                    });
+                }
+                safely('configWarning', function () { renderConfigWarning(metrics); });
+                safely('stats', function () { renderStats(metrics); });
+                safely('ers', function () { renderErs(metrics.ers); });
+                safely('riskClassStrip', function () { renderRiskClassStrip(metrics.classCounts || {}); });
+                safely('classChart', function () { renderClassChart(metrics.classCounts || {}); });
+                safely('ownerChart', function () { renderOwnerChart(metrics.ownerClassCounts || {}); });
+                safely('sankeyChart', function () { renderSankeyChart(metrics.sankeyLinks || []); });
+                safely('historyChart', function () { renderHistoryChart(metrics.history || []); });
+                safely('slaChart', function () { renderSlaChart(metrics.slaPoints || []); });
+            }
+
+            var WIDGET_ORDER_KEY = 'dashboardWidgetOrder';
+
+            function initDashboardDnD() {
+                var grid = document.getElementById('dashboard-grid');
+                if (!grid || grid.__dndInit || typeof window.Sortable === 'undefined') {
+                    return;
+                }
+                grid.__dndInit = true;
+
+                var savedOrder = [];
+                try {
+                    savedOrder = JSON.parse(localStorage.getItem(WIDGET_ORDER_KEY) || '[]');
+                } catch (err) {
+                    savedOrder = [];
+                }
+                savedOrder.forEach(function (id) {
+                    var widget = grid.querySelector('[data-widget-id="' + id + '"]');
+                    if (widget) grid.appendChild(widget);
+                });
+
+                new window.Sortable(grid, {
+                    handle: '.dashboard-widget-head',
+                    animation: 150,
+                    ghostClass: 'dashboard-widget-ghost',
+                    onEnd: function () {
+                        var order = Array.prototype.map.call(
+                            grid.querySelectorAll('[data-widget-id]'),
+                            function (el) { return el.getAttribute('data-widget-id'); }
+                        );
+                        try {
+                            localStorage.setItem(WIDGET_ORDER_KEY, JSON.stringify(order));
+                        } catch (err) { /* private browsing / storage disabled - ignore */ }
+                    }
+                });
+            }
+
+            function initDashboard() {
+                if (!document.getElementById('classChart') || typeof window.Chart === 'undefined') {
+                    return;
+                }
+
+                initDashboardDnD();
+
+                fetch('/api/v1/dashboard/metrics')
+                    .then(function (res) { return res.json(); })
+                    .then(render)
+                    .catch(function (err) { console.error('Failed to load dashboard metrics', err); });
+
+                if (window.__dashboardSSE) {
+                    window.__dashboardSSE.close();
+                }
+                var source = new EventSource('/api/v1/dashboard/stream');
+                source.addEventListener('metrics', function (event) {
+                    render(JSON.parse(event.data));
+                });
+                window.__dashboardSSE = source;
+            }
+
+            $(document).ready(initDashboard);
+            document.body.addEventListener('htmx:load', initDashboard);
+        })();
+    </script>
+</div>
+</body>
+</html>

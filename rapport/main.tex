@@ -1,0 +1,180 @@
+% =====================================================================
+%  Rapport de Projet de Fin d'Année (PFA)
+%  Plateforme de gestion dynamique du risque vulnerabilite
+% =====================================================================
+\documentclass[a4paper,12pt,oneside]{report}
+
+% ---------------------------------------------------------------------
+% Langue et encodage
+% ---------------------------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+% French babel makes : ; ! ? "active" characters (auto thin-space insertion),
+% which breaks \label/\ref/\cref keys containing a literal colon (e.g. sec:xxx).
+% Disable those shorthands; punctuation spacing is not critical for this report.
+\frenchbsetup{StandardLists=true}
+\usepackage{lmodern}
+
+% ---------------------------------------------------------------------
+% Mise en page
+% ---------------------------------------------------------------------
+\usepackage[a4paper,left=3cm,right=2.5cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage[Bjornstrup]{fncychap}
+\usepackage{tocloft}
+\usepackage{emptypage}
+
+% ---------------------------------------------------------------------
+% Mathematiques et preuves
+% ---------------------------------------------------------------------
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+
+\theoremstyle{plain}
+\newtheorem{propriete}{Propriete}[chapter]
+\newtheorem{lemme}[propriete]{Lemme}
+\newtheorem{corollaire}[propriete]{Corollaire}
+\theoremstyle{definition}
+\newtheorem{definition}[propriete]{Definition}
+\newtheorem{exemple}[propriete]{Exemple}
+\renewcommand{\proofname}{\bfseries Preuve}
+
+% ---------------------------------------------------------------------
+% Couleurs, graphiques, figures
+% ---------------------------------------------------------------------
+\usepackage{xcolor}
+\definecolor{dxcblue}{RGB}{0,60,113}
+\definecolor{dxcgray}{RGB}{88,89,91}
+\definecolor{riskblack}{RGB}{20,20,20}
+\definecolor{riskred}{RGB}{196,30,58}
+\definecolor{riskorange}{RGB}{237,139,0}
+\definecolor{riskyellow}{RGB}{240,200,0}
+\definecolor{riskgreen}{RGB}{46,139,87}
+
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{shapes.multipart,shapes.geometric,arrows.meta,positioning,calc,fit,backgrounds,decorations.pathreplacing}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{adjustbox}
+
+% ---------------------------------------------------------------------
+% Code source
+% ---------------------------------------------------------------------
+\usepackage{listings}
+\lstdefinelanguage{JavaPlus}{
+  language=Java,
+  morekeywords={var,record,sealed,permits}
+}
+\lstset{
+  language=JavaPlus,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{dxcblue}\bfseries,
+  commentstyle=\color{dxcgray}\itshape,
+  stringstyle=\color{riskgreen},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  frame=single,
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=2,
+  captionpos=b
+}
+
+% ---------------------------------------------------------------------
+% Liens et reference
+% ---------------------------------------------------------------------
+\usepackage[colorlinks=true,linkcolor=dxcblue,citecolor=dxcblue,urlcolor=dxcblue,bookmarksopen=true]{hyperref}
+\usepackage[french]{cleveref}
+\Crefname{propriete}{Propriete}{Proprietes}
+\Crefname{lemme}{Lemme}{Lemmes}
+
+% ---------------------------------------------------------------------
+% En-tetes / pieds de page
+% ---------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\leftmark}
+\fancyhead[R]{\small\thepage}
+\fancyfoot[C]{\small Rapport de Projet de Fin d'Annee}
+
+% ---------------------------------------------------------------------
+% Macros de personnalisation -- A COMPLETER PAR L'ETUDIANT
+% ---------------------------------------------------------------------
+\newcommand{\etudiantnom}{Mohamed Amine Faik}
+\newcommand{\universite}{Universite Cadi Ayyad}
+\newcommand{\etablissement}{Ecole Nationale des Sciences Appliquees de Marrakech}
+\newcommand{\filiere}{Genie Cyber Defense et Systemes de Telecommunications Embarques}
+\newcommand{\anneeuniv}{2025 -- 2026}
+\newcommand{\organisme}{DXC Technology}
+\newcommand{\encadrantacad}{[Nom de l'encadrant academique]}
+\newcommand{\encadrantpro}{[Nom de l'encadrant professionnel]}
+\newcommand{\datesoutenance}{[date de soutenance]}
+\newcommand{\titreprojet}{Plateforme de Gouvernance Dynamique du Risque Vulnerabilite}
+
+% Commande utilitaire pour signaler une donnee a personnaliser dans le texte
+\newcommand{\acompleter}[1]{\textcolor{riskred}{\textbf{[#1]}}}
+
+\begin{document}
+\selectlanguage{french}
+% babel-french re-activates the : ; ! ? shorthands at \begin{document}; a
+% preamble-level \shorthandoff is overridden, so it must be repeated here.
+\shorthandoff{:;!?}
+
+% =====================================================================
+% Pages liminaires
+% =====================================================================
+\pagenumbering{gobble}
+\input{front/titlepage}
+\input{front/dedicace}
+\input{front/remerciements}
+\input{front/resume}
+
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+\input{front/abbreviations}
+
+\clearpage
+\pagenumbering{arabic}
+
+% =====================================================================
+% Corps du rapport
+% =====================================================================
+\input{chapters/introduction}
+\input{chapters/chap1_contexte}
+\input{chapters/chap2_analyse}
+\input{chapters/chap3_conception}
+\input{chapters/chap4_modelisation}
+\input{chapters/chap5_realisation}
+\input{chapters/chap6_visualisation}
+\input{chapters/chap7_tests}
+\input{chapters/conclusion}
+
+% =====================================================================
+% Annexes et bibliographie
+% =====================================================================
+\appendix
+\input{chapters/annexes}
+
+\clearpage
+\addcontentsline{toc}{chapter}{Bibliographie}
+\input{chapters/biblio}
+
+\end{document}

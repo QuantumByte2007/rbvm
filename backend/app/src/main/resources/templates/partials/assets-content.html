@@ -1,51 +1,133 @@
 <div class="container" th:fragment="reconciliation-table">
-    <div class="row">
-        <div class="col-12">
-            <h1>Rapport de Réconciliation : Qualys vs CMDB</h1>
 
-            <table id="reconciliationTable" class="table table-hover responsive nowrap" style="width:100%">
-                <thead>
-                <tr>
-                    <th>DNS (Qualys)</th>
-                    <th>Environnement (CMDB)</th>
-                </tr>
-                </thead>
+    <div class="page-header">
+        <span class="page-eyebrow">Asset inventory</span>
+        <h1>Reconciliation: Qualys &times; CMDB</h1>
+        <p class="page-subtitle">Every scanned host, matched against its configuration item, with the
+            computed risk score and SLA standing.</p>
+    </div>
 
-                <tbody>
-                <tr th:each="asset : ${assets}">
-
-                    <!-- Colonne 1 : DNS -->
-                    <td>
-                        <a href="#">
-                            <div style="display: flex; align-items: center;">
-                                <div class="avatar avatar-blue mr-3"><i class="fa-solid fa-server"></i></div>
-                                <div class="info" style="margin-left: 10px;">
-                                    <p class="fw-bold mb-0" th:text="${asset[0]}">serveur.domaine.local</p>
-                                </div>
-                            </div>
-                        </a>
-                    </td>
-
-                    <!-- Colonne 2 : Environnement avec couleurs dynamiques -->
-                    <!-- On convertit l'Enum en String de manière sécurisée (fallback sur UNKNOWN si null) -->
-                    <td th:with="envValue=${asset[1] != null ? #strings.toString(asset[1]) : 'UNKNOWN'}">
-
-                        <div th:switch="${envValue}">
-                            <span th:case="'PRODUCTION'"  class="badge badge-env-prod">PRODUCTION</span>
-                            <span th:case="'STAGING'"     class="badge badge-env-staging">STAGING</span>
-                            <span th:case="'QA'"          class="badge badge-env-qa">QA</span>
-                            <span th:case="'DEVELOPMENT'" class="badge badge-env-dev">DEVELOPMENT</span>
-                            <span th:case="'TEST'"        class="badge badge-env-test">TEST</span>
-                            <span th:case="*"             class="badge badge-env-unknown">
-                            <i class="fa-solid fa-triangle-exclamation me-1"></i> UNKNOWN
-                        </span>
-                        </div>
-
-                    </td>
-
-                </tr>
-                </tbody>
-            </table>
+    <div class="stat-chip-row">
+        <div class="stat-chip">
+            <span class="stat-chip-value" th:text="${totalCount}">0</span>
+            <span class="stat-chip-label">Assets</span>
         </div>
+        <div class="stat-chip stat-chip-danger">
+            <span class="stat-chip-value" th:text="${violatedCount}">0</span>
+            <span class="stat-chip-label">SLA violated</span>
+        </div>
+        <div class="stat-chip stat-chip-dark">
+            <span class="stat-chip-value" th:text="${criticalCount}">0</span>
+            <span class="stat-chip-label">Black / red</span>
+        </div>
+        <div class="stat-chip stat-chip-shadow">
+            <span class="stat-chip-value" th:text="${shadowItCount}">0</span>
+            <span class="stat-chip-label">Shadow IT</span>
+        </div>
+    </div>
+
+    <div class="notice notice-warning" th:if="${weightsConfigured == false}">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <div>
+            Risk scores haven't been computed yet: configure
+            <a hx-get="/riskCalcul/role" hx-target="#content" hx-push-url="true" href="/riskCalcul/role">role</a> and
+            <a hx-get="/riskCalcul/env" hx-target="#content" hx-push-url="true" href="/riskCalcul/env">environment</a>
+            weights first, then re-run ingestion.
+        </div>
+    </div>
+
+    <div class="panel-card">
+        <table id="reconciliationTable" class="table table-hover responsive nowrap" style="width:100%">
+            <thead>
+            <tr>
+                <th>DNS (Qualys)</th>
+                <th>Environnement (CMDB)</th>
+                <th>Reconciliation</th>
+                <th>ACS</th>
+                <th>ARS</th>
+                <th>SLA Class</th>
+                <th>SLA Status</th>
+                <th>SLA Due</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr th:each="asset : ${assets}">
+
+                <!-- Colonne 1 : DNS -->
+                <td>
+                    <a th:if="${asset.id != null}" th:attr="hx-get=@{/assets/{id}(id=${asset.id})}" hx-target="#content" hx-push-url="true"
+                       th:href="@{/assets/{id}(id=${asset.id})}">
+                        <div style="display: flex; align-items: center;">
+                            <div class="avatar avatar-blue mr-3"><i class="fa-solid fa-server"></i></div>
+                            <div class="info" style="margin-left: 10px;">
+                                <p class="fw-bold mb-0 mono" th:text="${asset.dns}">serveur.domaine.local</p>
+                            </div>
+                        </div>
+                    </a>
+                    <div th:if="${asset.id == null}" style="display: flex; align-items: center;">
+                        <div class="avatar avatar-pink mr-3"><i class="fa-solid fa-server"></i></div>
+                        <div class="info" style="margin-left: 10px;">
+                            <p class="fw-bold mb-0 mono" th:text="${asset.dns}">serveur.domaine.local</p>
+                        </div>
+                    </div>
+                </td>
+
+                <!-- Colonne 2 : Environnement avec couleurs dynamiques -->
+                <!-- On convertit l'Enum en String de manière sécurisée (fallback sur UNKNOWN si null) -->
+                <td th:with="envValue=${asset.env != null ? #strings.toString(asset.env) : 'UNKNOWN'}">
+
+                    <div th:switch="${envValue}">
+                        <span th:case="'PRODUCTION'"  class="badge badge-env-prod">PRODUCTION</span>
+                        <span th:case="'STAGING'"     class="badge badge-env-staging">STAGING</span>
+                        <span th:case="'QA'"          class="badge badge-env-qa">QA</span>
+                        <span th:case="'DEVELOPMENT'" class="badge badge-env-dev">DEVELOPMENT</span>
+                        <span th:case="'TEST'"        class="badge badge-env-test">TEST</span>
+                        <span th:case="*"             class="badge badge-env-unknown">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> UNKNOWN
+                    </span>
+                    </div>
+
+                </td>
+
+                <!-- Colonne 3 : Reconciliation status (Shadow IT flag) -->
+                <td>
+                    <span th:if="${asset.reconciliation == null or asset.reconciliation.name() == 'RECONCILED'}"
+                          class="badge badge-reconciled"><i class="fa-solid fa-check"></i> Reconciled</span>
+                    <span th:if="${asset.reconciliation != null and asset.reconciliation.name() == 'SHADOW_QUALYS_ONLY'}"
+                          class="badge badge-shadow" title="Scanned by Qualys but not registered in the CMDB">
+                        <i class="fa-solid fa-ghost"></i> Shadow IT &middot; not in CMDB</span>
+                    <span th:if="${asset.reconciliation != null and asset.reconciliation.name() == 'SHADOW_CMDB_ONLY'}"
+                          class="badge badge-shadow" title="Registered in the CMDB but never scanned by Qualys">
+                        <i class="fa-solid fa-ghost"></i> Shadow IT &middot; not scanned</span>
+                </td>
+
+                <!-- Colonne 4 : ACS -->
+                <td class="mono" th:text="${asset.acs != null ? #numbers.formatDecimal(asset.acs, 1, 2) : '-'}">-</td>
+
+                <!-- Colonne 5 : ARS -->
+                <td class="mono" th:text="${asset.ars != null ? #numbers.formatDecimal(asset.ars, 1, 2) : '-'}">-</td>
+
+                <!-- Colonne 6 : SLA Class (Black/Red/Orange/Yellow/Green) -->
+                <td th:with="riskClassValue=${asset.riskClass != null ? #strings.toString(asset.riskClass) : null}">
+                    <div th:switch="${riskClassValue}">
+                        <span th:case="'BLACK'"  class="badge badge-risk-black">BLACK</span>
+                        <span th:case="'RED'"    class="badge badge-risk-red">RED</span>
+                        <span th:case="'ORANGE'" class="badge badge-risk-orange">ORANGE</span>
+                        <span th:case="'YELLOW'" class="badge badge-risk-yellow">YELLOW</span>
+                        <span th:case="'GREEN'"  class="badge badge-risk-green">GREEN</span>
+                        <span th:case="*" class="badge badge-env-unknown">-</span>
+                    </div>
+                </td>
+
+                <!-- Colonne 7 : SLA Status (governance - on track / violated / accepted risk) -->
+                <td th:text="${asset.slaStatus != null ? #strings.toString(asset.slaStatus) : '-'}">-</td>
+
+                <!-- Colonne 8 : SLA Due -->
+                <td class="mono" th:text="${asset.slaDueDate != null ? asset.slaDueDate : '-'}">-</td>
+
+            </tr>
+            </tbody>
+        </table>
     </div>
 </div>

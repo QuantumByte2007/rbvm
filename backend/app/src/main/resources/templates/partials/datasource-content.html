@@ -2,25 +2,103 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <div th:fragment="content">
-    <h1>Fichiers</h1>
-    <button hx-post="/joblaunch/QUALYS" hx-target="#job-zone" class="btn btn-primary">
-        Lancer la digestion qualys
-    </button>
-    <div id="job-zone">
+
+    <div class="page-header">
+        <span class="page-eyebrow">Data ingestion</span>
+        <h1>Fichiers</h1>
+        <p class="page-subtitle">Upload the latest Qualys and CMDB exports, then launch the digestion job for
+            each source. Launch stays locked until a file for that source has been uploaded.</p>
+    </div>
+
+    <!-- Single definition used by both sources: Thymeleaf extracts this fragment by name and
+         renders it with whatever message/status the POST handler set, regardless of which
+         job-zone-* target htmx placed it in - see Upload.uploadFile / JobMVC.jobLaunch. -->
     <div th:fragment="result" th:if="${message != null}">
-
         <div th:if="${status == 'COMPLETED' or status == 'STARTED' or status == 'STARTING'}" class="alert alert-success">
-            <span th:text="${message}"></span>
+            <i class="fa-solid fa-circle-check"></i> <span th:text="${message}"></span>
         </div>
-
         <div th:if="${status == 'FAILED'}" class="alert alert-danger">
-            <span th:text="${message}"></span>
+            <i class="fa-solid fa-triangle-exclamation"></i> <span th:text="${message}"></span>
+        </div>
+    </div>
+
+    <div class="row ingest-row">
+        <div class="col-md-6">
+            <div class="ingest-card" data-ingest-card>
+                <div class="ingest-card-head">
+                    <span class="ingest-icon"><i class="fa-solid fa-shield-halved"></i></span>
+                    <div>
+                        <h4>Qualys</h4>
+                        <p>Vulnerability scan export (.xml)</p>
+                    </div>
+                </div>
+
+                <ol class="ingest-steps" data-ingest-steps>
+                    <li data-step="upload" class="active"><span class="ingest-step-dot"></span>Upload</li>
+                    <li data-step="launch"><span class="ingest-step-dot"></span>Launch</li>
+                </ol>
+
+                <form hx-post="/upload/QUALYS" hx-target="#job-zone-qualys" hx-swap="innerHTML"
+                      hx-encoding="multipart/form-data" data-upload-form>
+                    <label class="ingest-dropzone">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                        <span class="ingest-dropzone-text">Choose the Qualys XML file</span>
+                        <input type="file" name="file" accept=".xml" required/>
+                    </label>
+                    <button type="submit" class="btn btn-default ingest-upload-btn" hx-disabled-elt="this">
+                        <i class="fa-solid fa-upload"></i> Upload Qualys XML
+                    </button>
+                </form>
+
+                <button hx-post="/joblaunch/QUALYS" hx-target="#job-zone-qualys" hx-swap="innerHTML"
+                        hx-disabled-elt="this" class="btn btn-primary ingest-launch-btn" data-launch-btn disabled>
+                    <i class="fa-solid fa-play"></i> Lancer la digestion Qualys
+                </button>
+                <p class="ingest-status" data-ingest-status>Waiting for a file.</p>
+
+                <div id="job-zone-qualys" class="ingest-result"></div>
+            </div>
         </div>
 
+        <div class="col-md-6">
+            <div class="ingest-card" data-ingest-card>
+                <div class="ingest-card-head">
+                    <span class="ingest-icon"><i class="fa-solid fa-database"></i></span>
+                    <div>
+                        <h4>CMDB</h4>
+                        <p>Configuration items export (.xml)</p>
+                    </div>
+                </div>
+
+                <ol class="ingest-steps" data-ingest-steps>
+                    <li data-step="upload" class="active"><span class="ingest-step-dot"></span>Upload</li>
+                    <li data-step="launch"><span class="ingest-step-dot"></span>Launch</li>
+                </ol>
+
+                <form hx-post="/upload/CMDB" hx-target="#job-zone-cmdb" hx-swap="innerHTML"
+                      hx-encoding="multipart/form-data" data-upload-form>
+                    <label class="ingest-dropzone">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                        <span class="ingest-dropzone-text">Choose the CMDB XML file</span>
+                        <input type="file" name="file" accept=".xml" required/>
+                    </label>
+                    <button type="submit" class="btn btn-default ingest-upload-btn" hx-disabled-elt="this">
+                        <i class="fa-solid fa-upload"></i> Upload CMDB XML
+                    </button>
+                </form>
+
+                <button hx-post="/joblaunch/CMDB" hx-target="#job-zone-cmdb" hx-swap="innerHTML"
+                        hx-disabled-elt="this" class="btn btn-primary ingest-launch-btn" data-launch-btn disabled>
+                    <i class="fa-solid fa-play"></i> Lancer la digestion CMDB
+                </button>
+                <p class="ingest-status" data-ingest-status>Waiting for a file.</p>
+
+                <div id="job-zone-cmdb" class="ingest-result"></div>
+            </div>
+        </div>
     </div>
-    </div>
-    <!-- Le tableau est encore un sous-fragment séparé -->
-<!--    <div th:replace="~{partials/files-table :: table}"></div>-->
+
+    <script th:src="@{/js/datasource.js}"></script>
 </div>
 </body>
 </html>

@@ -1,0 +1,23 @@
+\babel@toc {french}{}\relax 
+\babel@toc {french}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Diagramme de cas d'utilisation de la plateforme}}{10}{figure.caption.7}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Diagramme de deploiement (conteneurs Docker Compose)}}{13}{figure.caption.8}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Architecture logicielle en couches}}{14}{figure.caption.9}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Diagramme de classes simplifie du domaine}}{15}{figure.caption.10}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Diagramme de sequence -- ingestion d'un export et recalcul du risque}}{17}{figure.caption.11}%
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Diagramme de sequence -- interrogation de l'assistant RAG}}{18}{figure.caption.12}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Repartition des actifs par classe de risque (diagramme en anneau, donnees illustratives)}}{35}{figure.caption.16}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Repartition des actifs par equipe proprietaire (barres horizontales empilees, donnees illustratives)}}{36}{figure.caption.17}%
+\contentsline {figure}{\numberline {6.3}{\ignorespaces Diagramme de flux (Sankey) Environnement $\to $ Role $\to $ Classe de risque (donnees illustratives)}}{37}{figure.caption.18}%
+\contentsline {figure}{\numberline {6.4}{\ignorespaces Historique empile de la repartition par classe (donnees illustratives, une serie par instantane \texttt {RiskSnapshot})}}{38}{figure.caption.19}%
+\contentsline {figure}{\numberline {6.5}{\ignorespaces Conformite SLA : anciennete vs. ARS, avec zones de classe en fond (donnees illustratives)}}{39}{figure.caption.20}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }

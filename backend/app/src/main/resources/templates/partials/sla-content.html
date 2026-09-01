@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="sla">
+
+    <div class="page-header">
+        <span class="page-eyebrow">Risk calculator</span>
+        <h1>SLA classes</h1>
+        <p class="page-subtitle">The ARS threshold and remediation SLA for each risk class (ARS is capped at 1000).
+            GREEN has no floor - it's whatever doesn't clear the YELLOW threshold.</p>
+    </div>
+
+    <form hx-post="/riskCalcul/submit-sla" hx-target="#result" hx-swap="innerHTML" data-edit-save-form>
+        <div class="panel-card sla-config-card">
+            <div class="sla-config-row">
+                <span class="badge badge-risk-black sla-config-label">BLACK</span>
+                <label>Min ARS
+                    <input type="number" class="form-control" id="blackMinArs" name="blackMinArs" min="0" max="1000" step="1" th:value="${config.blackMinArs}">
+                </label>
+                <label>SLA (days)
+                    <input type="number" class="form-control" id="slaBlackDays" name="slaBlackDays" min="1" max="365" step="1" th:value="${config.slaBlackDays}">
+                </label>
+            </div>
+            <div class="sla-config-row">
+                <span class="badge badge-risk-red sla-config-label">RED</span>
+                <label>Min ARS
+                    <input type="number" class="form-control" id="redMinArs" name="redMinArs" min="0" max="1000" step="1" th:value="${config.redMinArs}">
+                </label>
+                <label>SLA (days)
+                    <input type="number" class="form-control" id="slaRedDays" name="slaRedDays" min="1" max="365" step="1" th:value="${config.slaRedDays}">
+                </label>
+            </div>
+            <div class="sla-config-row">
+                <span class="badge badge-risk-orange sla-config-label">ORANGE</span>
+                <label>Min ARS
+                    <input type="number" class="form-control" id="orangeMinArs" name="orangeMinArs" min="0" max="1000" step="1" th:value="${config.orangeMinArs}">
+                </label>
+                <label>SLA (days)
+                    <input type="number" class="form-control" id="slaOrangeDays" name="slaOrangeDays" min="1" max="365" step="1" th:value="${config.slaOrangeDays}">
+                </label>
+            </div>
+            <div class="sla-config-row">
+                <span class="badge badge-risk-yellow sla-config-label">YELLOW</span>
+                <label>Min ARS
+                    <input type="number" class="form-control" id="yellowMinArs" name="yellowMinArs" min="0" max="1000" step="1" th:value="${config.yellowMinArs}">
+                </label>
+                <label>SLA (days)
+                    <input type="number" class="form-control" id="slaYellowDays" name="slaYellowDays" min="1" max="365" step="1" th:value="${config.slaYellowDays}">
+                </label>
+            </div>
+            <div class="sla-config-row">
+                <span class="badge badge-risk-green sla-config-label">GREEN</span>
+                <label class="sla-config-floor">Min ARS <span>0 (floor)</span></label>
+                <label>SLA (days)
+                    <input type="number" class="form-control" id="slaGreenDays" name="slaGreenDays" min="1" max="365" step="1" th:value="${config.slaGreenDays}">
+                </label>
+            </div>
+        </div>
+        <button type="button" class="btn btn-default mt-3" data-edit-btn>Edit</button>
+        <button type="submit" class="btn btn-primary mt-3" data-save-btn>Save SLA classes</button>
+    </form>
+
+    <div id="result">
+        <div th:fragment="result" th:if="${message != null}">
+            <div class="alert alert-success">
+                <span th:text="${message}"></span>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

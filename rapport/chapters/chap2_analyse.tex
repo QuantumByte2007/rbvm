@@ -1,0 +1,239 @@
+\chapter{Analyse et specification des besoins}
+\label{chap:analyse}
+
+\section{Identification des acteurs}
+
+L'analyse du perimetre fonctionnel (\cref{sec:perimetre}) fait apparaitre trois
+acteurs interagissant avec la plateforme :
+
+\begin{itemize}
+  \item \textbf{Analyste securite / RSSI} : consulte le tableau de bord, explore le
+  detail du score d'un actif, interroge l'assistant conversationnel. C'est
+  l'utilisateur principal du systeme au quotidien.
+  \item \textbf{Administrateur fonctionnel} : en plus des actions de l'analyste,
+  importe les nouveaux exports Qualys/CMDB et configure les parametres du modele de
+  risque (poids, facteurs, seuils SLA). Dans le modele UML, cet acteur
+  \emph{generalise} l'analyste : tout ce que l'analyste peut faire, l'administrateur
+  le peut aussi.
+  \item \textbf{Moteur LLM local (Ollama)} : acteur secondaire, externe au systeme,
+  sollicite par le cas d'utilisation « Interroger l'assistant RAG » pour generer une
+  reponse en langage naturel a partir des donnees recuperees par les outils exposes
+  a l'agent.
+\end{itemize}
+
+\section{Besoins fonctionnels}
+
+\begin{longtable}{@{}p{1.3cm}p{11.5cm}@{}}
+\toprule
+\textbf{Code} & \textbf{Besoin fonctionnel} \\
+\midrule
+\endhead
+BF-01 & Importer un fichier d'export Qualys (XML) et en extraire la liste des hotes
+et de leurs vulnerabilites. \\
+BF-02 & Importer un fichier d'export CMDB (XML) et en extraire la liste des elements
+de configuration (CI). \\
+BF-03 & Rejeter tout fichier deja traite (detection par empreinte cryptographique) et
+tout fichier dont le type MIME reel ne correspond pas au type declare. \\
+BF-04 & Recalculer automatiquement, des qu'un import aboutit ou qu'une configuration
+change, l'ACS, le score QDS pondere, l'ARS, la classe de risque et le statut SLA de
+chaque actif reconcilie. \\
+BF-05 & Permettre a l'administrateur de configurer les poids de severite
+($w_c, w_h, w_m, w_l$), les poids par role technique et par environnement, les
+facteurs de modulation ($I_{External}$, $M_{SOC}$, $M_{AV}$, $M_{Patch}$) et les
+seuils/delais SLA par classe de risque. \\
+BF-06 & Marquer un actif en exception (« risque accepte ») et refleter cet etat dans
+le statut SLA affiche, sans alterer l'ARS calcule. \\
+BF-07 & Afficher un tableau de bord synthetisant la repartition du parc par classe de
+risque, par equipe/proprietaire, les flux Environnement/Role/Classe, l'historique de
+l'ARS moyen et la conformite SLA. \\
+BF-08 & Mettre a jour le tableau de bord en temps reel (sans rechargement de page)
+des qu'un recalcul de risque aboutit. \\
+BF-09 & Afficher, pour un actif donne, le detail explicatif du calcul de son ARS
+(contribution de chaque terme de la formule). \\
+BF-10 & Permettre a l'analyste d'interroger en langage naturel les donnees ingerees
+et calculees via un assistant conversationnel. \\
+\bottomrule
+\end{longtable}
+
+\section{Besoins non fonctionnels}
+
+\begin{longtable}{@{}p{2.6cm}p{10.2cm}@{}}
+\toprule
+\textbf{Categorie} & \textbf{Exigence} \\
+\midrule
+\endhead
+Performance & Le calcul de l'ARS pour l'ensemble du parc doit s'effectuer en
+parallele (un couple ACS/QDS pondere par actif) pour rester compatible avec des
+imports comportant plusieurs milliers d'hotes. \\
+Reactivite & Le tableau de bord doit refleter un nouveau recalcul sans action de
+l'utilisateur (push serveur $\to$ client). \\
+Coherence transactionnelle & Un evenement declenchant un recalcul ne doit etre traite
+qu'apres la validation (\emph{commit}) de la transaction qui l'a emis, afin d'eviter
+de lire un etat de base de donnees partiel. \\
+Idempotence des imports & Un meme fichier ne doit jamais etre traite deux fois ; un
+nouvel import d'un meme type de source remplace integralement l'etat precedent. \\
+Robustesse des entrees & Le type reel d'un fichier uploade doit etre verifie
+independamment de son extension declaree (protection contre l'upload de fichiers non
+maitrise). \\
+Configurabilite & Aucun parametre du modele de risque (poids, facteurs, seuils) ne
+doit etre code en dur : tous doivent rester modifiables sans redeploiement. \\
+Portabilite & L'application doit pouvoir etre deployee de maniere reproductible via
+conteneurisation (Docker Compose), y compris le moteur d'inference du LLM local. \\
+\bottomrule
+\end{longtable}
+
+\section{Diagramme de cas d'utilisation}
+
+Le \cref{fig:uc-diagram} synthetise les besoins fonctionnels precedents sous forme de
+diagramme de cas d'utilisation UML. Les relations \texttt{<<include>>} traduisent le
+fait que trois evenements distincts (import Qualys, import CMDB, soumission d'une
+configuration) declenchent systematiquement le meme sous-processus : le recalcul du
+risque.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  actor/.style={draw,minimum width=1.6cm,align=center,font=\small,inner sep=6pt},
+  usecase/.style={draw,ellipse,minimum width=3.6cm,minimum height=1cm,align=center,font=\scriptsize,fill=dxcblue!6},
+  include/.style={draw,dashed,-{Latex[length=2mm]}},
+  assoc/.style={draw,-},
+  gen/.style={draw,-{Triangle[length=2.6mm,width=2.6mm,open]}}
+]
+
+% Acteurs
+\node[actor] (analyste) at (-0.2,-2.3) {
+  \begin{tikzpicture}[scale=0.35]
+    \draw (0,0) circle (0.4);
+    \draw (0,-0.4) -- (0,-1.6);
+    \draw (-0.7,-0.7) -- (0.7,-0.7);
+    \draw (0,-1.6) -- (-0.6,-2.5);
+    \draw (0,-1.6) -- (0.6,-2.5);
+  \end{tikzpicture}\\ Analyste securite};
+
+\node[actor] (admin) at (-0.2,-7.4) {
+  \begin{tikzpicture}[scale=0.35]
+    \draw (0,0) circle (0.4);
+    \draw (0,-0.4) -- (0,-1.6);
+    \draw (-0.7,-0.7) -- (0.7,-0.7);
+    \draw (0,-1.6) -- (-0.6,-2.5);
+    \draw (0,-1.6) -- (0.6,-2.5);
+  \end{tikzpicture}\\ Administrateur\\ fonctionnel};
+
+\node[actor] (llm) at (13.4,-6.6) {
+  \begin{tikzpicture}[scale=0.35]
+    \draw (0,0) circle (0.4);
+    \draw (0,-0.4) -- (0,-1.6);
+    \draw (-0.7,-0.7) -- (0.7,-0.7);
+    \draw (0,-1.6) -- (-0.6,-2.5);
+    \draw (0,-1.6) -- (0.6,-2.5);
+  \end{tikzpicture}\\ Moteur LLM\\ (Ollama)};
+
+% Frontiere du systeme
+\node[draw,minimum width=9.6cm,minimum height=9.6cm,label={[font=\bfseries\small]above:Plateforme}] (sys) at (5.7,-4.2) {};
+
+% Cas d'utilisation
+\node[usecase] (uc1) at (2.3,-0.5)  {Importer un rapport\\ Qualys};
+\node[usecase] (uc2) at (2.3,-2.0)  {Importer un export\\ CMDB};
+\node[usecase] (uc3) at (2.3,-3.5)  {Configurer les poids\\ et facteurs du modele};
+\node[usecase] (uc4) at (2.3,-5.0)  {Configurer les seuils\\ et delais SLA};
+\node[usecase] (uc5) at (2.3,-6.5)  {Marquer un actif\\ en exception};
+\node[usecase] (uc6) at (8.9,-1.0)  {Recalculer le risque\\ (ARS, classe, SLA)};
+\node[usecase] (uc7) at (8.9,-2.6)  {Consulter le tableau\\ de bord temps reel};
+\node[usecase] (uc8) at (8.9,-4.1)  {Consulter le detail\\ explicatif d'un actif};
+\node[usecase] (uc9) at (8.9,-5.6)  {Interroger l'assistant\\ conversationnel (RAG)};
+\node[usecase] (uc10) at (8.9,-7.1) {Suivre l'historique\\ de l'ARS moyen};
+
+% Associations acteurs - cas d'utilisation
+\draw[assoc] (analyste) -- (uc7);
+\draw[assoc] (analyste) -- (uc8);
+\draw[assoc] (analyste) -- (uc9);
+\draw[assoc] (analyste) -- (uc10);
+
+\draw[assoc] (admin) -- (uc1);
+\draw[assoc] (admin) -- (uc2);
+\draw[assoc] (admin) -- (uc3);
+\draw[assoc] (admin) -- (uc4);
+\draw[assoc] (admin) -- (uc5);
+
+\draw[gen] (admin) -- (analyste);
+
+\draw[assoc] (uc9) -- (llm);
+
+% Include
+\draw[include] (uc1) -- (uc6) node[midway,above,sloped,font=\tiny]{<<include>>};
+\draw[include] (uc2) -- (uc6) node[midway,above,sloped,font=\tiny]{<<include>>};
+\draw[include] (uc3) -- (uc6) node[midway,below,sloped,font=\tiny]{<<include>>};
+\draw[include] (uc4) -- (uc6) node[midway,below,sloped,font=\tiny]{<<include>>};
+
+\end{tikzpicture}
+\caption{Diagramme de cas d'utilisation de la plateforme}
+\label{fig:uc-diagram}
+\end{figure}
+
+\section{Description textuelle des cas d'utilisation principaux}
+
+\subsection{UC -- Importer un rapport Qualys / un export CMDB}
+
+\begin{longtable}{@{}p{3.2cm}p{9.6cm}@{}}
+\toprule
+\textbf{Acteur principal} & Administrateur fonctionnel \\
+\textbf{Pre-condition} & Le fichier est un document XML dont le contenu correspond au
+format attendu (rapport Qualys ou export CMDB). \\
+\textbf{Scenario nominal} &
+1) L'administrateur televerse le fichier via l'interface d'upload. \\
+& 2) Le systeme detecte le type MIME reel du fichier et calcule son empreinte
+SHA. \\
+& 3) Si l'empreinte correspond a un fichier deja traite, l'import est rejete. \\
+& 4) Sinon, le fichier est stocke sur disque et marque comme en attente de
+traitement. \\
+& 5) L'administrateur declenche le lancement du traitement par lots
+(\emph{batch}) correspondant au type de fichier. \\
+& 6) Le systeme vide les donnees precedentes de ce type de source, puis lit,
+transforme et persiste les nouvelles donnees par lots. \\
+& 7) A l'issue du traitement, un evenement d'ingestion terminee est publie,
+declenchant le recalcul du risque (cas d'utilisation inclus). \\
+\textbf{Post-condition} & Les donnees de la source concernee refletent
+integralement le nouvel export ; le risque de tous les actifs impactes est
+recalcule. \\
+\textbf{Exceptions} & Fichier deja traite (empreinte identique) ; type MIME
+incoherent avec le type declare ; traitement deja en cours (verrou applicatif). \\
+\bottomrule
+\end{longtable}
+
+\subsection{UC -- Consulter le tableau de bord temps reel}
+
+\begin{longtable}{@{}p{3.2cm}p{9.6cm}@{}}
+\toprule
+\textbf{Acteur principal} & Analyste securite \\
+\textbf{Scenario nominal} &
+1) L'analyste ouvre la page du tableau de bord. \\
+& 2) Le systeme calcule et renvoie l'ensemble des agregats (repartition par
+classe, par equipe, flux Sankey, historique, points SLA). \\
+& 3) Le navigateur ouvre une connexion evenementielle (SSE) vers le serveur. \\
+& 4) A chaque recalcul de risque abouti, le serveur pousse les nouveaux agregats
+a tous les clients connectes, qui redessinent les graphiques sans rechargement
+de page. \\
+\textbf{Post-condition} & L'analyste dispose d'une vue a jour de la posture de
+risque du parc. \\
+\bottomrule
+\end{longtable}
+
+\subsection{UC -- Interroger l'assistant conversationnel (RAG)}
+
+\begin{longtable}{@{}p{3.2cm}p{9.6cm}@{}}
+\toprule
+\textbf{Acteur principal} & Analyste securite \\
+\textbf{Acteur secondaire} & Moteur LLM local (Ollama) \\
+\textbf{Scenario nominal} &
+1) L'analyste pose une question en langage naturel (ex. : « quels sont les
+actifs en classe Black non couverts par le SOC ? »). \\
+& 2) L'agent conversationnel determine si la question necessite d'interroger la
+base de donnees via un outil expose (\emph{tool calling}). \\
+& 3) Si oui, l'outil est invoque, son resultat est injecte dans le contexte du
+modele. \\
+& 4) Le modele local genere une reponse en flux (\emph{streaming}) restituee
+progressivement a l'utilisateur. \\
+\textbf{Post-condition} & L'analyste obtient une reponse fondee sur les donnees
+reelles du systeme plutot que sur la seule connaissance generale du modele. \\
+\bottomrule
+\end{longtable}

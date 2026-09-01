@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div class="container" th:fragment="error">
+    <div class="alert alert-danger" role="alert">
+        <strong>Something went wrong.</strong>
+        <span th:text="${message}">An error occurred.</span>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div class="container" th:fragment="assetDetail">
+
+    <p>
+        <a hx-get="/assets" hx-target="#content" hx-push-url="true" href="/assets">&larr; Back to assets</a>
+    </p>
+
+    <div style="display:flex; align-items:center; gap:14px;">
+        <h1 class="mb-0" th:text="${host.dns}">host.example.com</h1>
+        <span th:if="${host.riskClass != null}" th:switch="${#strings.toString(host.riskClass)}">
+            <span th:case="'BLACK'"  class="badge badge-risk-black">BLACK</span>
+            <span th:case="'RED'"    class="badge badge-risk-red">RED</span>
+            <span th:case="'ORANGE'" class="badge badge-risk-orange">ORANGE</span>
+            <span th:case="'YELLOW'" class="badge badge-risk-yellow">YELLOW</span>
+            <span th:case="'GREEN'"  class="badge badge-risk-green">GREEN</span>
+        </span>
+    </div>
+    <p class="text-muted" th:text="${host.ip}">10.0.0.1</p>
+
+    <div class="alert alert-warning" th:if="${weightsConfigured == false}">
+        Risk scores haven't been computed yet: configure
+        <a hx-get="/riskCalcul/role" hx-target="#content" hx-push-url="true" href="/riskCalcul/role">role</a> and
+        <a hx-get="/riskCalcul/env" hx-target="#content" hx-push-url="true" href="/riskCalcul/env">environment</a>
+        weights first, then re-run ingestion.
+    </div>
+
+    <div class="alert alert-warning" th:if="${weightsConfigured == true and cmdbCi == null}">
+        No CMDB record matches this host's IP (<span th:text="${host.ip}"></span>) - ARS needs a reconciled
+        CMDB entry (role/env/security posture) to compute ACS and the mitigation factors.
+    </div>
+
+    <div th:if="${breakdown != null}">
+
+        <div class="row">
+            <div class="col-md-3"><div class="alert alert-info"><strong>ACS</strong><div th:text="${#numbers.formatDecimal(breakdown.acs, 1, 2)}"></div></div></div>
+            <div class="col-md-3"><div class="alert alert-info"><strong>&Sigma; QDS (weighted)</strong><div th:text="${#numbers.formatDecimal(breakdown.weightedQds, 1, 2)}"></div></div></div>
+            <div class="col-md-3"><div class="alert alert-info"><strong>I_ext &times; M_ctrl</strong><div th:text="${#numbers.formatDecimal(breakdown.iExternal * breakdown.mControls, 1, 2)}"></div></div></div>
+            <div class="col-md-3"><div class="alert alert-success"><strong>ARS</strong><div th:text="${#numbers.formatDecimal(breakdown.ars, 1, 2)}"></div></div></div>
+        </div>
+
+        <div class="alert alert-secondary" style="background:#f5f7fa;border:1px solid #e2e8f0;">
+            <strong>ARS = ACS &times; &Sigma;QDS &times; I_ext &times; M_ctrl =</strong>
+            <span th:text="${#numbers.formatDecimal(breakdown.acs, 1, 2)}"></span> &times;
+            <span th:text="${#numbers.formatDecimal(breakdown.weightedQds, 1, 2)}"></span> &times;
+            <span th:text="${#numbers.formatDecimal(breakdown.iExternal, 1, 2)}"></span> &times;
+            <span th:text="${#numbers.formatDecimal(breakdown.mControls, 1, 2)}"></span>
+            = <strong th:text="${#numbers.formatDecimal(breakdown.ars, 1, 2)}"></strong>
+        </div>
+
+        <h4>1. Asset Criticality Score (ACS)</h4>
+        <table class="table">
+            <tbody>
+            <tr><th>Role</th><td th:text="${breakdown.role}"></td><td>weight <span th:text="${#numbers.formatDecimal(breakdown.roleWeight, 1, 2)}"></span></td></tr>
+            <tr><th>Environment</th><td th:text="${breakdown.env}"></td><td>weight <span th:text="${#numbers.formatDecimal(breakdown.envWeight, 1, 2)}"></span></td></tr>
+            </tbody>
+        </table>
+        <p class="text-muted">
+            ACS = 1 + ((role weight + env weight) / 2) &times; 4 =
+            1 + ((<span th:text="${#numbers.formatDecimal(breakdown.roleWeight, 1, 2)}"></span> +
+            <span th:text="${#numbers.formatDecimal(breakdown.envWeight, 1, 2)}"></span>) / 2) &times; 4 =
+            <strong th:text="${#numbers.formatDecimal(breakdown.acs, 1, 2)}"></strong>
+        </p>
+
+        <h4>2. Weighted QDS (&Sigma; severity weight &times; avg QDS &times; count^(1/100))</h4>
+        <table class="table">
+            <thead><tr><th>Severity</th><th>Count</th><th>Avg QDS (open vulns)</th><th>Weight</th><th>Product</th></tr></thead>
+            <tbody>
+            <tr th:each="term : ${breakdown.severityTerms}">
+                <td th:text="${term.severity}"></td>
+                <td th:text="${term.count}"></td>
+                <td th:text="${#numbers.formatDecimal(term.avgQds, 1, 2)}"></td>
+                <td th:text="${#numbers.formatDecimal(term.weight, 1, 2)}"></td>
+                <td th:text="${#numbers.formatDecimal(term.product, 1, 2)}"></td>
+            </tr>
+            <tr>
+                <th colspan="4">Sum (&Sigma;QDS)</th>
+                <th th:text="${#numbers.formatDecimal(breakdown.weightedQds, 1, 2)}"></th>
+            </tr>
+            </tbody>
+        </table>
+
+        <h4>3. External exposure factor (I_ext)</h4>
+        <p>
+            <span th:if="${breakdown.internetExposed}">Internet-facing (QID 45004 detected) &rarr; I_ext = </span>
+            <span th:unless="${breakdown.internetExposed}">Not internet-facing &rarr; I_ext = </span>
+            <strong th:text="${#numbers.formatDecimal(breakdown.iExternal, 1, 2)}"></strong>
+        </p>
+
+        <h4>4. Mitigation controls (M_ctrl = M_soc &times; M_av &times; M_patch)</h4>
+        <table class="table">
+            <thead><tr><th>Control</th><th>Present on asset</th><th>Factor applied</th></tr></thead>
+            <tbody>
+            <tr>
+                <td>SOC coverage</td>
+                <td th:text="${cmdbCi.soc} ? 'Yes' : 'No'"></td>
+                <td th:text="${#numbers.formatDecimal(breakdown.mSoc, 1, 2)}"></td>
+            </tr>
+            <tr>
+                <td>Antivirus / EDR</td>
+                <td th:text="${cmdbCi.antivirus} ? 'Yes' : 'No'"></td>
+                <td th:text="${#numbers.formatDecimal(breakdown.mAv, 1, 2)}"></td>
+            </tr>
+            <tr>
+                <td>Excluded from standard patch cycle</td>
+                <td th:text="${cmdbCi.standardPatching} ? 'No (patched normally)' : 'Yes (excluded)'"></td>
+                <td th:text="${#numbers.formatDecimal(breakdown.mPatch, 1, 2)}"></td>
+            </tr>
+            <tr>
+                <th colspan="2">M_ctrl</th>
+                <th th:text="${#numbers.formatDecimal(breakdown.mControls, 1, 2)}"></th>
+            </tr>
+            </tbody>
+        </table>
+
+        <h4>5. Classification &amp; SLA</h4>
+        <table class="table">
+            <tbody>
+            <tr><th>Risk class</th><td th:text="${breakdown.riskClass}"></td></tr>
+            <tr><th>SLA status</th><td th:text="${breakdown.slaStatus}"></td></tr>
+            <tr><th>SLA due date</th><td th:text="${breakdown.slaDueDate != null ? breakdown.slaDueDate : '-'}"></td></tr>
+            <tr><th>Oldest open vuln age</th>
+                <td th:text="${breakdown.ageInDays != null ? #numbers.formatDecimal(breakdown.ageInDays, 1, 1) + ' days' : '-'}"></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+</body>
+</html>

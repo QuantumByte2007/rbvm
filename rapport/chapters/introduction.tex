@@ -1,0 +1,43 @@
+\chapter*{Introduction generale}
+\addcontentsline{toc}{chapter}{Introduction generale}
+\markboth{Introduction generale}{Introduction generale}
+
+Dans un systeme d'information moderne, le nombre de vulnerabilites remontees chaque
+semaine par un scanner comme Qualys se compte en milliers. Chaque vulnerabilite est
+associee a un score technique -- le QDS (Qualys Detection Score) -- qui mesure la
+gravite intrinseque de la faille, independamment de l'actif sur lequel elle a ete
+detectee. Or, un serveur de developpement isole du reseau et une base de donnees de
+production accessible depuis Internet ne presentent pas le meme risque pour
+l'entreprise, meme s'ils partagent exactement les memes vulnerabilites. Traiter
+toutes les alertes avec la meme priorite revient soit a noyer les equipes de
+remediation sous un volume ingerable, soit, a l'inverse, a laisser filer des risques
+critiques faute de hierarchisation.
+
+C'est ce probleme -- passer d'un inventaire brut de vulnerabilites a une
+hierarchisation actionnable du risque -- que ce projet de fin d'annee cherche a
+resoudre. Realise au sein de \organisme, il a donne naissance a une plateforme qui
+croise deux sources de donnees historiquement traitees separement :
+les exports de scan Qualys (la probabilite d'exploitation technique) et la CMDB (la
+criticite metier et les mesures de protection deja en place sur chaque actif). De ce
+croisement est derive un score unique et explicable par actif, l'\emph{Asset Risk
+Score}, qui pilote ensuite des delais de remediation differencies (SLA) et permet de
+mesurer objectivement la performance des equipes charge es de corriger les failles
+(MTTR pondere).
+
+Ce rapport documente l'ensemble de la demarche suivie. Le premier chapitre situe le
+projet dans son contexte organisationnel et technique, formule la problematique et
+delimite precisement son perimetre. Le deuxieme chapitre specifie les besoins
+fonctionnels et non fonctionnels de la plateforme a travers une analyse UML des cas
+d'utilisation. Le troisieme chapitre presente la conception logicielle retenue :
+architecture globale, modele de donnees et diagrammes de sequence des principaux
+flux. Le quatrieme chapitre, coeur scientifique du projet, formalise et demontre
+mathematiquement le modele de risque -- ARS, classification SLA, MTTR pondere et
+agregation en un Enterprise Risk Score. Le cinquieme chapitre decrit la realisation
+technique de la plateforme, de l'ingestion des donnees a l'assistant conversationnel.
+Le sixieme chapitre explique, graphique par graphique, comment lire le tableau de
+bord produit par l'application. Le septieme chapitre presente la strategie de test et
+valide numeriquement le modele sur un exemple complet. Le rapport se conclut par un
+bilan critique du travail realise et par les perspectives d'evolution envisagees pour
+la plateforme.
+
+\clearpage

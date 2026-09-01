@@ -1,0 +1,137 @@
+\chapter{Contexte general du projet}
+\label{chap:contexte}
+
+\section{Organisme d'accueil}
+
+Ce projet a ete realise dans le cadre d'un stage de fin d'annee au sein de
+\organisme\footnote{\acompleter{A completer : presentation de l'agence/departement
+d'accueil, activites, effectif, positionnement sur le marche de la cybersecurite et
+des services IT.}}. \organisme{} est une entreprise de services numeriques qui
+accompagne ses clients dans la modernisation, la securisation et l'exploitation de
+leurs systemes d'information. Le stage s'est deroule au sein d'une equipe technique
+en charge de la securite operationnelle (\emph{DevSecOps}), dont l'une des missions
+est de fournir aux equipes clientes une visibilite fiable et exploitable sur
+l'exposition aux vulnerabilites de leur parc informatique.
+
+\section{Problematique}
+\label{sec:problematique}
+
+Le point de depart du projet est un constat operationnel, formalise dans les notes de
+cadrage initiales (voir \emph{app\_notes\_dxc.txt}) : les donnees necessaires a
+l'evaluation du risque existent, mais elles sont fragmentees et de natures tres
+differentes.
+
+\begin{itemize}
+  \item Les exports \textbf{Qualys} decrivent, pour chaque hote scanne, la liste des
+  vulnerabilites detectees (identifiant QID, severite, score QDS, dates de premiere
+  et derniere detection, statut de correction). Ces donnees sont \emph{volumineuses}
+  et \emph{mises a jour frequemment} (un nouveau scan peut redefinir l'etat complet
+  du parc).
+  \item La \textbf{CMDB} (Configuration Management Database) decrit, pour chaque
+  element de configuration, son role technique, son environnement (production, test,
+  developpement...), son proprietaire metier et les mesures de protection deployees
+  (antivirus/EDR, supervision SOC, cycle de patch standard). Ces donnees sont
+  \emph{plus stables} mais \emph{lues frequemment} par tous les traitements de
+  scoring.
+\end{itemize}
+
+Avant ce projet, le rapprochement entre ces deux sources -- indispensable pour
+distinguer une vulnerabilite critique sur un serveur de production expose d'une
+vulnerabilite identique sur un poste de test isole -- se faisait manuellement (feuille
+de calcul), ce qui est lent, source d'erreurs, non tracable dans le temps et ne
+permet aucune restitution visuelle consolidee pour le pilotage. Cette absence de
+score de risque contextualise et de gouvernance SLA associee constitue la
+problematique centrale adressee par ce projet.
+
+\section{Objectifs du projet}
+
+Les objectifs assignes au stage, tels qu'ils decoulent du cadrage initial, sont les
+suivants :
+
+\begin{enumerate}
+  \item Concevoir un modele mathematique de risque qui combine la criticite metier
+  d'un actif (issue de la CMDB), la gravite intrinseque de ses vulnerabilites (issue
+  de Qualys), son exposition reseau et ses controles compensatoires, en un score
+  unique, explicable et reproductible : l'\emph{Asset Risk Score} (ARS).
+  \item Automatiser l'ingestion des exports Qualys et CMDB (fichiers XML), avec
+  detection des doublons et traitement asynchrone, pour supporter des mises a jour
+  frequentes sans intervention manuelle.
+  \item Deriver de l'ARS une gouvernance operationnelle : classification en 5 classes
+  de risque (\emph{Green} a \emph{Black}), delais de remediation SLA associes, et
+  gestion des exceptions de risque accepte.
+  \item Mesurer objectivement la performance des equipes de remediation via un
+  indicateur de temps moyen de correction pondere par criticite (MTTR pondere).
+  \item Restituer l'ensemble de ces informations dans un tableau de bord temps reel,
+  exploitable par un RSSI ou un analyste securite, combinant plusieurs types de
+  graphiques (repartition, flux, historique, conformite SLA).
+  \item Offrir un canal d'interrogation en langage naturel de ces donnees via un
+  assistant conversationnel fonde sur une architecture RAG.
+\end{enumerate}
+
+\section{Perimetre du projet}
+\label{sec:perimetre}
+
+\subsection{Ce qui est couvert}
+
+\begin{itemize}
+  \item L'ingestion, le parsing et la persistance des exports Qualys (rapport de
+  vulnerabilites par hote) et CMDB (inventaire des elements de configuration), au
+  format XML.
+  \item Le calcul, pour chaque actif reconcilie (present a la fois dans Qualys et
+  dans la CMDB), de l'ACS, du score QDS pondere par severite, de l'ARS, de la classe
+  de risque, du statut SLA et de l'anciennete de la vulnerabilite ouverte la plus
+  ancienne.
+  \item La configuration, par l'utilisateur, des poids du modele : poids par
+  severite, poids par role technique et par environnement (pour l'ACS), facteurs de
+  modulation ($I_{External}$, $M_{SOC}$, $M_{AV}$, $M_{Patch}$), seuils et delais SLA
+  par classe, poids de ponderation du MTTR par classe.
+  \item Un tableau de bord de pilotage alimente en temps reel (Server-Sent Events)
+  presentant la repartition du parc par classe de risque, par equipe proprietaire,
+  les flux Environnement/Role/Classe (diagramme de Sankey), l'historique de l'ARS
+  moyen et la conformite SLA (age des vulnerabilites ouvertes vs. ARS).
+  \item Un assistant conversationnel RAG capable de repondre, en langage naturel, a
+  des questions portant sur les donnees ingerees et calculees -- livre sous forme de
+  prototype fonctionnel, ce module restant au stade du developpement et de la
+  conception (cf. limites, \cref{sec:perspectives}).
+\end{itemize}
+
+\subsection{Ce qui est explicitement hors perimetre}
+
+\begin{itemize}
+  \item L'agregation multi-scan dans le temps au niveau de la CMDB : chaque nouvel
+  import remplace integralement l'etat precedent (strategie \emph{wipe-and-reingest},
+  cf. \cref{sec:pipeline-ingestion}) ; il n'y a pas, dans la version realisee, de
+  gestion de versions historiques des CI.
+  \item L'authentification et le controle d'acces par role (RBAC) : la version
+  realisee est un prototype fonctionnel dont la chaine de securite HTTP est
+  volontairement ouverte (voir limites, \cref{sec:perspectives}).
+  \item La connexion a d'autres sources de vulnerabilites que Qualys (Nessus,
+  Tenable, OpenVAS...) ou a d'autres CMDB que le format d'export etudie.
+  \item Le calcul effectif du facteur de penalite operationnelle
+  $\mathrm{Global\_I_{Ops}}$ dans l'agregation \emph{Enterprise Risk Score} : le
+  modele mathematique est entierement specifie et demontre (\cref{chap:modelisation})
+  mais son integration dans le service applicatif reste une perspective
+  d'evolution.
+\end{itemize}
+
+\section{Methodologie de travail}
+
+Le developpement a suivi une demarche iterative et incrementale, guidee par
+l'historique des livraisons du projet : une premiere version couvrant l'ingestion et
+le modele de donnees de base, suivie d'une phase de fiabilisation de l'ingestion
+CMDB, puis d'une extension fonctionnelle majeure (moteur de risque configurable,
+tableau de bord temps reel, assistant RAG), et enfin d'une phase de
+conteneurisation en vue du deploiement (Docker Compose). Chaque etape a fait l'objet
+de commits Git dedies, permettant une tracabilite complete des choix
+d'implementation. Cette approche a permis de valider tot le pipeline de bout en
+bout (upload $\to$ ingestion $\to$ calcul $\to$ restitution) avant d'en enrichir
+progressivement la richesse fonctionnelle (configuration dynamique des poids,
+gestion des exceptions, historisation des instantanes de risque).
+
+\section{Organisation du reste du rapport}
+
+La suite du rapport suit la logique amont-aval d'un projet logiciel : specification
+des besoins (\cref{chap:analyse}), conception (\cref{chap:conception}), fondements
+mathematiques du coeur metier (\cref{chap:modelisation}), realisation
+(\cref{chap:realisation}), restitution visuelle (\cref{chap:visualisation}) et
+validation (\cref{chap:tests}), avant de conclure sur le bilan et les perspectives.

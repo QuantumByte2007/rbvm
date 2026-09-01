@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="weightCategory">
+    <h3 th:text="${title}">Weights</h3>
+
+    <form th:attr="hx-post='/riskCalcul/' + ${category} + '/submit-weights'" hx-target="#result" hx-swap="innerHTML" data-edit-save-form>
+        <div class="form-group">
+            <div class="weight-row" th:each="key : ${keys}">
+                <label th:text="${key}">KEY</label>
+                <input class="form-control-range" th:name="${key}" max="1" min="0" step="0.01"
+                       th:value="${weights.get(key)} ?: 0.5" type="range">
+                <span class="value" th:text="${weights.get(key)} ?: 0.5">0.5</span><br>
+            </div>
+        </div>
+        <button type="button" class="btn btn-default mt-3" data-edit-btn>Edit</button>
+        <button type="submit" class="btn btn-primary mt-3" data-save-btn>Save</button>
+    </form>
+
+    <div id="result">
+        <div th:fragment="result" th:if="${message != null}">
+            <div class="alert alert-success">
+                <span th:text="${message}"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.weight-row').forEach(function (row) {
+            var slider = row.querySelector('input[type=range]');
+            var output = row.querySelector('.value');
+            if (slider && output) {
+                slider.addEventListener('input', function () {
+                    output.textContent = slider.value;
+                });
+            }
+        });
+    </script>
+</div>
+</body>
+</html>

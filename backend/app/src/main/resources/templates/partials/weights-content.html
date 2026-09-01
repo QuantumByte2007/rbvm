@@ -4,26 +4,27 @@
 <div th:fragment="weights">
 
     <!-- Fix 2: Corrected the POST URL -->
-    <form hx-post="/riskCalcul/submit-weights" hx-target="#result" hx-swap="innerHTML">
+    <form hx-post="/riskCalcul/submit-weights" hx-target="#result" hx-swap="innerHTML" data-edit-save-form>
         <div class="form-group">
             <!-- Your inputs stay exactly the same -->
             <label for="wcritical">Weight for Critical vulns</label>
-            <input class="form-control-range" id="wcritical" name="wcritical" max="1" min="0" step="0.1" value="0.5" type="range">
-            <span id="cValue" class="value">0.5</span><br>
+            <input class="form-control-range" id="wcritical" name="wcritical" max="1" min="0" step="0.01" th:value="${config.wCritical}" type="range">
+            <span id="cValue" class="value" th:text="${config.wCritical}">0.5</span><br>
 
             <label for="whigh">Weight for High vulns</label>
-            <input class="form-control-range" id="whigh" name="whigh" max="1" min="0" step="0.1" value="0.5" type="range">
-            <span id="hValue" class="value">0.5</span><br>
+            <input class="form-control-range" id="whigh" name="whigh" max="1" min="0" step="0.01" th:value="${config.wHigh}" type="range">
+            <span id="hValue" class="value" th:text="${config.wHigh}">0.5</span><br>
 
             <label for="wmedium">Weight for Medium vulns</label>
-            <input class="form-control-range" id="wmedium" name="wmedium" max="1" min="0" step="0.1" value="0.5" type="range">
-            <span id="mValue" class="value">0.5</span><br>
+            <input class="form-control-range" id="wmedium" name="wmedium" max="1" min="0" step="0.01" th:value="${config.wMedium}" type="range">
+            <span id="mValue" class="value" th:text="${config.wMedium}">0.5</span><br>
 
             <label for="wlow">Weight for Low vulns</label>
-            <input class="form-control-range" id="wlow" name="wlow" max="1" min="0" step="0.1" value="0.5" type="range">
-            <span id="lValue" class="value">0.5</span>
+            <input class="form-control-range" id="wlow" name="wlow" max="1" min="0" step="0.01" th:value="${config.wLow}" type="range">
+            <span id="lValue" class="value" th:text="${config.wLow}">0.5</span>
         </div>
-        <button type="submit" class="btn btn-primary mt-3">Save Weights</button>
+        <button type="button" class="btn btn-default mt-3" data-edit-btn>Edit</button>
+        <button type="submit" class="btn btn-primary mt-3" data-save-btn>Save Weights</button>
     </form>
 
     <!-- Fix 3: An always-present div with id="result" for HTMX to target -->
@@ -37,18 +38,16 @@
     </div>
 
     <script>
-        const sliders = [
+        [
             { inputId: 'wcritical', outputId: 'cValue' },
             { inputId: 'whigh', outputId: 'hValue' },
             { inputId: 'wmedium', outputId: 'mValue' },
             { inputId: 'wlow', outputId: 'lValue' }
-        ];
-
-        sliders.forEach(item => {
-            const slider = document.getElementById(item.inputId);
-            const output = document.getElementById(item.outputId);
-            if(slider && output) {
-                slider.addEventListener('input', function() {
+        ].forEach(function (item) {
+            var slider = document.getElementById(item.inputId);
+            var output = document.getElementById(item.outputId);
+            if (slider && output) {
+                slider.addEventListener('input', function () {
                     output.textContent = this.value;
                 });
             }

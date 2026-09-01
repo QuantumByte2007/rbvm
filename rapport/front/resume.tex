@@ -1,0 +1,71 @@
+\chapter*{Resume}
+\addcontentsline{toc}{chapter}{Resume}
+
+Les organisations exposees a Internet accumulent des milliers de vulnerabilites
+detectees par des scanners tels que Qualys, sans toujours disposer d'un moyen fiable
+de les hierarchiser selon le risque reel qu'elles font courir au systeme d'information.
+Une severite technique brute (CVSS ou QDS) ne suffit pas : un meme defaut n'a pas le
+meme impact selon qu'il touche un serveur de test isole ou une base de donnees de
+production exposee sur Internet. Ce projet, realise dans le cadre d'un stage de fin
+d'annee au sein de \organisme, propose une plateforme qui
+croise automatiquement les exports Qualys (vulnerabilites) et CMDB (criticite metier
+des actifs) pour calculer un score de risque contextualise par actif, l'\emph{Asset
+Risk Score} (ARS), et pour en deriver une gouvernance operationnelle (classes de
+risque, delais de remediation SLA, mesure de la dette operationnelle via le MTTR
+pondere).
+
+Le travail effectue couvre l'ensemble de la chaine applicative : l'ingestion
+asynchrone et par lots (Spring Batch) des fichiers XML Qualys et CMDB avec
+dedoublonnage par empreinte cryptographique, la modelisation mathematique et
+l'implementation du moteur de calcul de risque, la construction d'un tableau de bord
+temps reel (Server-Sent Events, Chart.js) restituant la posture de securite du parc
+sous forme de graphiques (repartition par classe, diagramme de Sankey, historique,
+conformite SLA), ainsi qu'un assistant conversationnel fonde sur une architecture RAG
+(Retrieval-Augmented Generation) permettant d'interroger ces donnees en langage
+naturel -- ce dernier volet restant, au moment de la redaction, au stade du
+developpement et de la conception (prototype fonctionnel non encore valide pour un
+environnement de recette ou de production). Ce rapport detaille le contexte, la conception, les fondements
+mathematiques -- demontres formellement -- du modele de risque, la realisation
+technique et les perspectives d'evolution de la plateforme.
+
+\vspace{0.5cm}
+\noindent\textbf{Mots-cles :} gestion des vulnerabilites, risque cyber, CMDB, Qualys,
+Asset Risk Score, MTTR, Spring Batch, tableau de bord temps reel, RAG, Spring Boot.
+
+\bigskip
+\bigskip
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Organisations exposed to the Internet accumulate thousands of vulnerabilities
+detected by scanners such as Qualys, without always having a reliable way to
+prioritise them according to the actual risk they pose to the information system. A
+raw technical severity score (CVSS or QDS) is not sufficient: the same flaw does not
+carry the same impact depending on whether it affects an isolated test server or an
+Internet-facing production database. This project, carried out as part of a final
+year internship at \organisme, introduces a platform that
+automatically cross-references Qualys exports (vulnerabilities) with CMDB exports
+(business criticality of assets) to compute a contextualised risk score per asset,
+the \emph{Asset Risk Score} (ARS), and to derive an operational governance layer from
+it (risk classes, SLA remediation deadlines, operational debt measurement through a
+weighted MTTR).
+
+The work covers the whole application chain: asynchronous, batch-oriented ingestion
+(Spring Batch) of Qualys and CMDB XML files with deduplication by cryptographic hash,
+the mathematical modelling and implementation of the risk-scoring engine, a
+real-time dashboard (Server-Sent Events, Chart.js) rendering the fleet's security
+posture through charts (risk-class distribution, Sankey diagram, historical trend,
+SLA compliance), and a conversational assistant built on a Retrieval-Augmented
+Generation (RAG) architecture allowing this data to be queried in natural language --
+this last component still being, at the time of writing, at the development and
+design stage (a functional prototype not yet validated for a staging or production
+environment). This report details the context, the design, the mathematically proven foundations
+of the risk model, the technical implementation and the future perspectives of the
+platform.
+
+\vspace{0.5cm}
+\noindent\textbf{Keywords:} vulnerability management, cyber risk, CMDB, Qualys, Asset
+Risk Score, MTTR, Spring Batch, real-time dashboard, RAG, Spring Boot.
+
+\clearpage

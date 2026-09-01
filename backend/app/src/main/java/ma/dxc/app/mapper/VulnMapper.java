@@ -9,5 +9,6 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring", uses = {QdsAdapter.class})
 public interface VulnMapper {
     @Mapping(source = "qds", target = "qds")
+    @Mapping(target = "qidValue", source = "qid.qid")
     VulnInfo toEntity(VulnInfoDto vulnInfoDto);
 }

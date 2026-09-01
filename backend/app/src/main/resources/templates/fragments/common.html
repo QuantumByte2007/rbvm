@@ -14,6 +14,12 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap.min.css">
 
+    <!-- Font Awesome (templates reference fa-solid icons; nothing previously loaded it) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Type system: Inter for UI text, JetBrains Mono for hostnames/IPs/data -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+
     <!-- Votre CSS personnalisé -->
     <link rel="stylesheet" th:href="@{/css/table-style.css}">
 
@@ -39,6 +45,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
     <script th:src="@{/js/upload.js}"></script>
+
+    <!-- Chart.js (dashboard). The adapter's ".bundle" build already includes date-fns. -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-sankey@0.12.0/dist/chartjs-chart-sankey.min.js"></script>
 </head>
 
 <!-- 2. Le BODY : Le contenu visible de la page -->
@@ -47,25 +58,25 @@
 <nav th:fragment="navbar" class="navbar navbar-inverse">
     <div class="container-fluid">
         <div class="navbar-header">
-            <a class="navbar-brand" href="#">App</a>
+            <a class="navbar-brand" hx-get="/" hx-target="#content"
+               hx-push-url="true" href="/">0Risk</a>
         </div>
         <ul class="nav navbar-nav">
-            <li class="active"><a href="#">Home</a></li>
-            <li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href="#">Risk Calculator<span class="caret"></span></a>
+            <li><a hx-get="/" hx-target="#content" hx-push-url="true" href="/">Home</a></li>
+            <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Risk Calculator<span class="caret"></span></a>
                 <ul class="dropdown-menu">
-                    <li><a hx-get="/riskCalcul/weights" hx-target="#content" href="/riskCalcul/weights">Weights </a></li>
-                    <li><a href="#">External factors</a></li>
-                    <li><a href="#">Asset Criticality</a></li>
+                    <li><a hx-get="/riskCalcul/weights" hx-target="#content" hx-push-url="true" href="/riskCalcul/weights">Severity weights</a></li>
+                    <li><a hx-get="/riskCalcul/role" hx-target="#content" hx-push-url="true" href="/riskCalcul/role">Role weights</a></li>
+                    <li><a hx-get="/riskCalcul/env" hx-target="#content" hx-push-url="true" href="/riskCalcul/env">Environment weights</a></li>
+                    <li><a hx-get="/riskCalcul/mttr" hx-target="#content" hx-push-url="true" href="/riskCalcul/mttr">MTTR weights</a></li>
+                    <li><a hx-get="/riskCalcul/factors" hx-target="#content" hx-push-url="true" href="/riskCalcul/factors">External factors</a></li>
+                    <li><a hx-get="/riskCalcul/sla" hx-target="#content" hx-push-url="true" href="/riskCalcul/sla">SLA classes</a></li>
                 </ul>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" hx-get="/dashboard" hx-target="#content"
-                   hx-push-url="true" href="/dashboard">Dashboard</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" hx-get="/files" hx-target="#content"
-                   hx-push-url="true" href="/files">Fichiers</a>
-            </li>
+            <li><a hx-get="/dashboard" hx-target="#content" hx-push-url="true" href="/dashboard">Dashboard</a></li>
+            <li><a hx-get="/assets" hx-target="#content" hx-push-url="true" href="/assets">Assets</a></li>
+            <li><a hx-get="/joblaunch" hx-target="#content" hx-push-url="true" href="/joblaunch">Fichiers</a></li>
         </ul>
         <ul class="nav navbar-nav navbar-right">
             <li><a href="#"><span class="glyphicon glyphicon-user"></span> Sign Up</a></li>

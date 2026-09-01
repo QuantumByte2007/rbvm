@@ -1,0 +1,235 @@
+\chapter{Visualisation des donnees : lecture et interpretation des graphiques}
+\label{chap:visualisation}
+
+Le tableau de bord de la plateforme (page \url{/dashboard}, alimentee par
+\texttt{Dashboard\-Metrics\-Service} et rafraichie par le flux SSE decrit au
+\cref{chap:realisation}) restitue la posture de risque du parc a travers cinq
+graphiques complementaires, chacun repondant a une question de pilotage differente.
+Ce chapitre reproduit chacun d'eux avec des \textbf{donnees illustratives} (le
+tableau de bord reel affiche les donnees issues des imports Qualys/CMDB) et explique
+comment le lire.
+
+\section{Repartition par classe de risque}
+
+\textbf{Question a laquelle il repond :} \emph{quelle proportion du parc se trouve
+dans chaque classe de risque ?}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\def\R{2.3}
+% BLACK 5, RED 12, ORANGE 30, YELLOW 45, GREEN 120 -> total 212
+\draw[fill=riskblack,draw=white]  (0,0) -- (90:\R)     arc (90:81.51:\R)    -- cycle;
+\draw[fill=riskred,draw=white]    (0,0) -- (81.51:\R)  arc (81.51:61.13:\R) -- cycle;
+\draw[fill=riskorange,draw=white] (0,0) -- (61.13:\R)  arc (61.13:10.19:\R) -- cycle;
+\draw[fill=riskyellow,draw=white] (0,0) -- (10.19:\R)  arc (10.19:-66.23:\R)-- cycle;
+\draw[fill=riskgreen,draw=white]  (0,0) -- (-66.23:\R) arc (-66.23:-270:\R)-- cycle;
+\draw[fill=white] (0,0) circle (1.1); % anneau (doughnut)
+
+% legende
+\foreach \color/\label/\y in {riskblack/BLACK (5)/2.1, riskred/RED (12)/1.6,
+   riskorange/ORANGE (30)/1.1, riskyellow/YELLOW (45)/0.6, riskgreen/GREEN (120)/0.1} {
+  \node[draw,fill=\color,minimum width=0.3cm,minimum height=0.3cm] at (4.3,\y) {};
+  \node[right=0.2cm,font=\scriptsize] at (4.6,\y) {\label};
+}
+\end{tikzpicture}
+\caption{Repartition des actifs par classe de risque (diagramme en anneau, donnees illustratives)}
+\label{fig:chart-class}
+\end{figure}
+
+\textbf{Comment le lire.} Chaque secteur represente une classe de risque
+(\cref{tab:sla}) ; sa taille angulaire est proportionnelle au nombre d'actifs qui y
+appartiennent, et sa couleur suit le code couleur officiel de la matrice SLA (noir,
+rouge, orange, jaune, vert). Un coup d'oeil suffit pour evaluer la sante globale du
+parc : un anneau majoritairement vert avec des secteurs noir/rouge fins indique un
+parc globalement maitrise avec un nombre restreint d'urgences a traiter -- c'est la
+lecture attendue sur l'exemple ci-dessus, ou les classes BLACK et RED ne
+representent ensemble que $17/212\approx 8\%$ du parc.
+
+\section{Repartition par equipe proprietaire}
+
+\textbf{Question a laquelle il repond :} \emph{quelle equipe porte le plus de risque
+critique a traiter ?}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar stacked, width=13cm, height=5cm,
+  xlabel={Nombre d'actifs}, xmin=0,
+  symbolic y coords={Equipe C,Equipe B,Equipe A},
+  ytick=data, bar width=8mm,
+  legend style={at={(0.5,-0.28)},anchor=north,legend columns=5,font=\scriptsize},
+  legend cell align=left
+]
+\addplot [fill=riskgreen]  coordinates {(40,Equipe A) (55,Equipe B) (25,Equipe C)};
+\addplot [fill=riskyellow] coordinates {(10,Equipe A) (15,Equipe B) (20,Equipe C)};
+\addplot [fill=riskorange] coordinates {(5,Equipe A) (10,Equipe B) (15,Equipe C)};
+\addplot [fill=riskred]    coordinates {(2,Equipe A) (4,Equipe B) (6,Equipe C)};
+\addplot [fill=riskblack]  coordinates {(0,Equipe A) (1,Equipe B) (4,Equipe C)};
+\legend{Green,Yellow,Orange,Red,Black}
+\end{axis}
+\end{tikzpicture}
+\caption{Repartition des actifs par equipe proprietaire (barres horizontales empilees, donnees illustratives)}
+\label{fig:chart-owner}
+\end{figure}
+
+\textbf{Comment le lire.} Chaque ligne horizontale correspond au proprietaire CMDB
+(\texttt{cmdbOwner}) d'un ensemble d'actifs ; sa longueur totale est le nombre
+d'actifs qu'elle possede, et chaque segment colore est le nombre d'actifs de cette
+equipe dans une classe de risque donnee. Contrairement au graphique en anneau
+(vision globale), ce graphique permet de \textbf{cibler l'action} : sur l'exemple,
+l'Equipe C possede moins d'actifs au total que l'Equipe B, mais une proportion bien
+plus grande en classes Orange/Red/Black -- c'est elle qui devrait etre prioritairement
+sollicitee par le comite de securite.
+
+\section{Flux Environnement \texorpdfstring{$\to$}{->} Role \texorpdfstring{$\to$}{->} Classe de risque}
+
+\textbf{Question a laquelle il repond :} \emph{d'ou vient le risque, structurellement
+-- quels environnements et quels roles techniques concentrent les actifs les plus
+critiques ?}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\scriptsize]
+% Colonnes : Environnement -> Role -> Classe
+\node[draw,fill=dxcblue!15,minimum width=2.4cm,minimum height=0.7cm] (prod) at (0,1.3) {PRODUCTION};
+\node[draw,fill=dxcblue!15,minimum width=2.4cm,minimum height=0.7cm] (nonprod) at (0,-1.1) {STAGING / TEST / DEV};
+
+\node[draw,fill=dxcgray!12,minimum width=2.6cm,minimum height=0.7cm] (db) at (5.2,2.1) {DATABASE\_SERVER};
+\node[draw,fill=dxcgray!12,minimum width=2.6cm,minimum height=0.7cm] (vm) at (5.2,0.3) {VS\_LINUX/WINDOWS};
+\node[draw,fill=dxcgray!12,minimum width=2.6cm,minimum height=0.7cm] (net) at (5.2,-1.6) {IP\_ROUTER/SWITCH};
+
+\node[draw,fill=riskred!70,minimum width=1.6cm,minimum height=0.6cm] (red) at (10.4,2.5) {RED};
+\node[draw,fill=riskorange!70,minimum width=1.6cm,minimum height=0.6cm] (org) at (10.4,1.3) {ORANGE};
+\node[draw,fill=riskyellow!70,minimum width=1.6cm,minimum height=0.6cm] (yel) at (10.4,0.1) {YELLOW};
+\node[draw,fill=riskgreen!70,minimum width=1.6cm,minimum height=0.6cm] (grn) at (10.4,-1.3) {GREEN};
+
+% Flux Env -> Role (epaisseur ~ volume)
+\draw[riskred,line width=3pt,opacity=0.45] (prod.east) to[out=0,in=180] (db.west);
+\draw[dxcblue,line width=6pt,opacity=0.35] (prod.east) to[out=0,in=180] (vm.west);
+\draw[dxcgray,line width=2pt,opacity=0.4] (prod.east) to[out=0,in=180] (net.west);
+\draw[dxcblue,line width=8pt,opacity=0.3] (nonprod.east) to[out=0,in=180] (vm.west);
+\draw[dxcgray,line width=2pt,opacity=0.4] (nonprod.east) to[out=0,in=180] (net.west);
+
+% Flux Role -> Classe
+\draw[riskred,line width=3pt,opacity=0.5] (db.east) to[out=0,in=180] (red.west);
+\draw[riskorange,line width=2.5pt,opacity=0.5] (db.east) to[out=0,in=180] (org.west);
+\draw[riskorange,line width=3pt,opacity=0.5] (vm.east) to[out=0,in=180] (org.west);
+\draw[riskyellow,line width=5pt,opacity=0.5] (vm.east) to[out=0,in=180] (yel.west);
+\draw[riskgreen,line width=4pt,opacity=0.5] (vm.east) to[out=0,in=180] (grn.west);
+\draw[riskyellow,line width=2pt,opacity=0.5] (net.east) to[out=0,in=180] (yel.west);
+\draw[riskgreen,line width=5pt,opacity=0.5] (net.east) to[out=0,in=180] (grn.west);
+
+\node[above=0.1cm of prod, font=\scriptsize\bfseries] {\phantom{x}};
+\node[font=\scriptsize\bfseries] at (0,2.5) {Environnement};
+\node[font=\scriptsize\bfseries] at (5.2,3.2) {Role technique};
+\node[font=\scriptsize\bfseries] at (10.4,3.2) {Classe de risque};
+\end{tikzpicture}
+\caption{Diagramme de flux (Sankey) Environnement $\to$ Role $\to$ Classe de risque (donnees illustratives)}
+\label{fig:chart-sankey}
+\end{figure}
+
+\textbf{Comment le lire.} Chaque bande horizontale relie deux categories ; sa
+\textbf{largeur (l'epaisseur du trait) est proportionnelle au nombre d'actifs}
+empruntant ce chemin, et sa couleur reprend soit l'environnement d'origine, soit --
+pour le second niveau -- la classe de risque de destination (c'est exactement la
+convention utilisee par \texttt{DashboardMetricsService}, qui construit ce graphique
+en deux temps : \texttt{Env}$\to$\texttt{Role} d'abord, \texttt{Role}$\to$\texttt{RiskClass}
+ensuite). On lit ce graphique de gauche a droite en suivant l'epaisseur des flux : sur
+l'exemple, les bases de donnees de production concentrent un flux epais vers RED,
+signalant qu'il s'agit du couple (role, environnement) le plus critique du parc --
+une information que ni le graphique en anneau ni le graphique par equipe ne
+permettent de voir directement, puisqu'aucun des deux ne croise simultanement
+l'environnement et le role technique.
+
+\section{Historique de la repartition du parc}
+
+\textbf{Question a laquelle il repond :} \emph{la posture de risque du parc
+s'ameliore-t-elle ou se degrade-t-elle au fil des campagnes de scan successives ?}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=13cm, height=6cm,
+  xlabel={Campagne de scan (n)}, ylabel={Nombre d'actifs},
+  xtick={1,2,3,4,5}, xticklabels={n-4,n-3,n-2,n-1,n},
+  ymin=0, stack plots=y, area style,
+  legend style={at={(0.5,-0.22)},anchor=north,legend columns=5,font=\scriptsize}
+]
+\addplot [fill=riskblack, draw=riskblack]  coordinates {(1,4)(2,5)(3,6)(4,5)(5,5)} \closedcycle;
+\addplot [fill=riskred, draw=riskred]      coordinates {(1,18)(2,16)(3,15)(4,13)(5,12)} \closedcycle;
+\addplot [fill=riskorange, draw=riskorange]coordinates {(1,40)(2,38)(3,35)(4,32)(5,30)} \closedcycle;
+\addplot [fill=riskyellow, draw=riskyellow]coordinates {(1,50)(2,48)(3,47)(4,46)(5,45)} \closedcycle;
+\addplot [fill=riskgreen, draw=riskgreen]  coordinates {(1,90)(2,100)(3,108)(4,115)(5,120)} \closedcycle;
+\legend{Black,Red,Orange,Yellow,Green}
+\end{axis}
+\end{tikzpicture}
+\caption{Historique empile de la repartition par classe (donnees illustratives, une serie par instantane \texttt{RiskSnapshot})}
+\label{fig:chart-history}
+\end{figure}
+
+\textbf{Comment le lire.} Chaque bande coloree empilee represente l'effectif d'une
+classe de risque a un instant donne (un \texttt{RiskSnapshot} enregistre a chaque
+recalcul, \cref{chap:conception}) ; la hauteur totale de la pile est la taille du
+parc scanne a ce moment-la. Ce n'est pas la hauteur d'une bande prise isolement qui
+importe, mais son \textbf{evolution relative dans le temps} : sur l'exemple, la bande
+verte (GREEN) s'epaissit progressivement tandis que les bandes orange et rouge
+s'amincissent -- signe d'une tendance favorable, meme si le nombre d'actifs en
+classe Black reste globalement stable, ce qui justifierait une attention particuliere
+portee a ce sous-ensemble specifique plutot qu'a la tendance globale.
+
+\section{Conformite SLA (age vs. score de risque)}
+
+\textbf{Question a laquelle il repond :} \emph{quels actifs sont en violation de
+leur delai de remediation, et de combien ?}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=13cm, height=7cm,
+  xlabel={Asset Risk Score (ARS)}, ylabel={Anciennete de la vulnerabilite ouverte (jours)},
+  xmin=0, xmax=1000, ymin=0, ymax=100,
+  axis on top
+]
+% Bandes de fond par classe (zones SLA)
+\fill[riskgreen,opacity=0.12]  (axis cs:0,0)   rectangle (axis cs:200,100);
+\fill[riskyellow,opacity=0.12] (axis cs:200,0) rectangle (axis cs:400,100);
+\fill[riskorange,opacity=0.12] (axis cs:400,0) rectangle (axis cs:600,100);
+\fill[riskred,opacity=0.12]    (axis cs:600,0) rectangle (axis cs:700,100);
+\fill[riskblack,opacity=0.12]  (axis cs:700,0) rectangle (axis cs:1000,100);
+
+% Ligne en escalier : delai SLA exige par zone (90/30/15/7/2 jours)
+\addplot[thick,dashed,dxcgray,const plot] coordinates {(0,90)(200,30)(400,15)(600,7)(700,2)(1000,2)};
+
+% Points : actifs (vert = ON_TRACK, rouge = VIOLATED)
+\addplot[only marks,mark=*,mark options={fill=riskgreen,draw=black,opacity=0.85}]
+  coordinates {(90,20)(150,15)(250,10)(320,25)(480,8)(550,10)};
+\addplot[only marks,mark=*,mark options={fill=riskred!80!black,draw=black,opacity=0.9}]
+  coordinates {(260,45)(430,20)(610,12)(650,18)(720,6)(760,9)};
+
+\legend{Limite SLA (escalier), Actifs conformes (ON\_TRACK), Actifs en violation (VIOLATED)}
+\end{axis}
+\end{tikzpicture}
+\caption{Conformite SLA : anciennete vs. ARS, avec zones de classe en fond (donnees illustratives)}
+\label{fig:chart-sla}
+\end{figure}
+
+\textbf{Comment le lire.} Chaque point est un actif ; sa position horizontale est son
+ARS (\cref{eq:ars}) et sa position verticale, l'age en jours de sa vulnerabilite
+ouverte la plus ancienne. Les bandes de fond delimitent les cinq classes de risque
+(\cref{tab:sla}) et la ligne en escalier grise trace le delai SLA maximal autorise
+pour la classe correspondant a chaque plage d'ARS. \textbf{La regle de lecture est
+geometrique} : un point situe \emph{au-dessus} de la ligne en escalier, dans sa
+propre bande de couleur, est en violation de son SLA -- c'est exactement le critere
+programme dans \texttt{applyRiskScore} (\cref{eq:sla-status}), rendu visuellement
+immediat. Sur l'exemple, le point a $(ARS=260, \text{age}=45\text{j})$ tombe dans la
+zone Yellow (SLA de $30$ jours) alors qu'il affiche $45$ jours d'anciennete : il est
+donc bien au-dessus de la marche de l'escalier a cet endroit, coherent avec sa
+couleur rouge (violation). A l'inverse, un point situe sous la ligne, dans sa bande,
+est encore \emph{dans les temps}. Ce graphique est celui qui traduit le plus
+directement la gouvernance SLA du \cref{chap:modelisation} en decision operationnelle
+: il permet d'identifier en un coup d'oeil les actifs qui necessitent une escalade
+immediate.

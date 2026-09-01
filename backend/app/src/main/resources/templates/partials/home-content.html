@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="home">
+    <div class="jumbotron">
+        <h1>0Risk</h1>
+        <p>
+            0Risk reconciles vulnerability scans from Qualys with your CMDB to compute a
+            real, per-asset risk score. Browse reconciled hosts and their risk classification in
+            <a hx-get="/assets" hx-target="#content" hx-push-url="true" href="/assets">Assets</a>,
+            watch risk trends live on the
+            <a hx-get="/dashboard" hx-target="#content" hx-push-url="true" href="/dashboard">Dashboard</a>,
+            tune how risk is scored under Risk Calculator &mdash;
+            <a hx-get="/riskCalcul/weights" hx-target="#content" hx-push-url="true" href="/riskCalcul/weights">severity</a>,
+            <a hx-get="/riskCalcul/role" hx-target="#content" hx-push-url="true" href="/riskCalcul/role">role</a>,
+            <a hx-get="/riskCalcul/env" hx-target="#content" hx-push-url="true" href="/riskCalcul/env">environment</a>,
+            <a hx-get="/riskCalcul/mttr" hx-target="#content" hx-push-url="true" href="/riskCalcul/mttr">MTTR</a> and
+            <a hx-get="/riskCalcul/factors" hx-target="#content" hx-push-url="true" href="/riskCalcul/factors">external-factor</a>
+            weights &mdash; and manage incoming Qualys/CMDB scans under
+            <a hx-get="/joblaunch" hx-target="#content" hx-push-url="true" href="/joblaunch">Fichiers</a>.
+        </p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="alert alert-info">
+                <h4>Dashboard</h4>
+                <p>Live risk trends, SLA compliance and impact flow.</p>
+                <a class="btn btn-primary" hx-get="/dashboard" hx-target="#content" hx-push-url="true" href="/dashboard">Open</a>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="alert alert-info">
+                <h4>Assets</h4>
+                <p>Reconciled Qualys/CMDB hosts and their ARS.</p>
+                <a class="btn btn-primary" hx-get="/assets" hx-target="#content" hx-push-url="true" href="/assets">Open</a>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="alert alert-info">
+                <h4>Risk Calculator</h4>
+                <p>Tune severity/role/env/MTTR/factor weights.</p>
+                <a class="btn btn-primary" hx-get="/riskCalcul/weights" hx-target="#content" hx-push-url="true" href="/riskCalcul/weights">Open</a>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="alert alert-info">
+                <h4>Fichiers</h4>
+                <p>Upload and launch Qualys/CMDB ingestion.</p>
+                <a class="btn btn-primary" hx-get="/joblaunch" hx-target="#content" hx-push-url="true" href="/joblaunch">Open</a>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

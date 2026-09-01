@@ -1,0 +1,156 @@
+\chapter{Realisation et implementation}
+\label{chap:realisation}
+
+\section{Environnement technique}
+
+La plateforme est developpee en Java 17 sur Spring Boot, avec PostgreSQL comme
+systeme de persistance et Ollama comme moteur d'inference local pour l'assistant
+conversationnel. L'ensemble est conteneurise avec Docker et orchestre par Docker
+Compose (\cref{fig:deployment}), ce qui permet de reproduire l'environnement complet
+-- base de donnees, backend, moteur LLM et telechargement automatique du modele --
+sur n'importe quelle machine disposant de Docker.
+
+\section{Pipeline d'ingestion des donnees}
+\label{sec:pipeline-ingestion}
+
+\subsection{Reception et securisation du fichier}
+
+Un fichier depose par l'utilisateur passe par trois controles avant d'etre accepte
+(\cref{lst:store}) : detection du type MIME reel par Apache Tika (independamment de
+l'extension declaree, pour eviter qu'un fichier malveillant deguise en
+\texttt{.xml} ne soit traite), calcul d'une empreinte cryptographique, et rejet si
+cette empreinte correspond a un fichier deja traite. Ce dernier point repond
+directement au probleme identifie en phase de cadrage (\emph{app\_notes\_dxc.txt},
+section 4) : sans deduplication, un utilisateur qui re-uploade par erreur le meme
+export declencherait un nouveau traitement par lots inutile.
+
+\begin{lstlisting}[caption={Deduplication par empreinte avant stockage (TempFileStorageServiceimpl)},label={lst:store}]
+String digest = computeHash(file);
+if (fileRepository.existsByHash(digest)) {
+    throw new FileProcessedException();
+}
+fileRepository.deleteByName(type.name().toLowerCase());
+fileRepository.save(new File(UUID.randomUUID(), null, file.getSize(),
+        detectMimeType(file), Instant.now(), type.name().toLowerCase(),
+        digest, false));
+\end{lstlisting}
+
+\subsection{Traitement par lots (Spring Batch)}
+
+Le traitement effectif est confie a Spring Batch. Chaque type de source (Qualys,
+CMDB) possede son propre \emph{job}, compose d'une seule etape orientee bloc
+(\emph{chunk}) de $100$ elements : un lecteur \texttt{StaxEventItemReader} parcourt le
+XML en flux (sans le charger integralement en memoire) en isolant les fragments
+correspondant a l'element racine attendu (\texttt{HOST} pour Qualys, \texttt{row}
+pour la CMDB), un \emph{processor} transforme chaque DTO en entite via un
+\emph{mapper} MapStruct, et un \texttt{JpaItemWriter} persiste le lot.
+
+\begin{lstlisting}[caption={Etape Spring Batch d'ingestion CMDB (BatchConfig)},label={lst:batch}]
+@Bean
+public Step cmdbStep(JobRepository jobRepository,
+        MultiResourceItemReader<CmdbDto> reader,
+        PlatformTransactionManager tx,
+        JpaItemWriter<CmdbCi> writer,
+        CmdbProcessor processor) {
+    return new StepBuilder(jobRepository)
+            .<CmdbDto, CmdbCi>chunk(100)
+            .transactionManager(tx)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .build();
+}
+\end{lstlisting}
+
+Chaque nouvel import est traite comme la verite complete et actuelle de sa source :
+avant de lancer le job, \texttt{JobService.wipeForReingest} supprime l'integralite
+des lignes precedentes du type concerne (\texttt{Host} pour Qualys, en cascade sur
+ses \texttt{VulnInfo} ; \texttt{CmdbCi} pour la CMDB). Ce choix (documente en
+\cref{sec:perimetre}) evite qu'un actif retire du parc ne reste indefiniment visible
+dans le tableau de bord, au prix de l'absence d'historique detaille des CI entre deux
+imports -- une limite assumee et reprise en \cref{sec:perspectives}.
+
+Le lancement d'un job est protege par un verrou applicatif
+(\texttt{ReentrantLock}) : les \emph{readers} StAX sont resolus tardivement via les
+parametres du job (liaison par contexte de thread), et deux jobs executes en
+parallele pourraient faire lire a l'un d'eux le motif de fichiers de l'autre. Le
+verrou garantit qu'un seul job d'ingestion s'execute a la fois.
+
+\subsection{Recalcul du risque : parallelisme et coherence transactionnelle}
+
+Une fois l'ingestion terminee, le recalcul de risque
+(\texttt{RiskCalculationService.\allowbreak recomputeAll}) traite chaque hote reconcilie de
+maniere independante et parallele : pour chaque actif, le calcul de l'ACS et celui
+du score QDS pondere sont soumis a un pool de threads dedie au calcul
+(\texttt{CALC\_EXECUTOR}), puis combines des que les deux resultats sont disponibles.
+
+\begin{lstlisting}[caption={Parallelisation du calcul par actif (RiskCalculationService)},label={lst:parallel}]
+CompletableFuture<Double> acsFuture =
+    CompletableFuture.supplyAsync(() -> computeAcs(cmdbCi, roleWeights, envWeights), calcExecutor);
+CompletableFuture<Double> weightedQdsFuture =
+    CompletableFuture.supplyAsync(() -> computeWeightedQds(host, config), calcExecutor);
+
+return acsFuture.thenCombine(weightedQdsFuture,
+    (acs, weightedQds) -> applyRiskScore(host, cmdbCi, config, acs, weightedQds));
+\end{lstlisting}
+
+Le declenchement du recalcul n'est jamais appele directement par le controleur
+d'upload : il reagit a un evenement applicatif
+(\texttt{IngestionCompletedEvent}), consomme par un \emph{listener}
+transactionnel configure en phase \texttt{AFTER\_COMMIT}. Ce choix, deja illustre au
+\cref{fig:seq-ingestion}, evite une classe de bug subtile mais reelle : sans cette
+precaution, le listener pourrait demarrer sa propre transaction de lecture avant que
+la transaction d'ecriture des nouvelles donnees ne soit effectivement validee, et
+recalculer le risque sur un etat de base partiellement ecrit.
+
+\section{Tableau de bord temps reel}
+
+Le tableau de bord combine deux mecanismes : un point d'entree REST classique
+(\texttt{GET} \url{/api/v1/dashboard/metrics}) qui calcule et renvoie l'ensemble des
+agregats a l'ouverture de la page, et un flux Server-Sent Events
+(\texttt{GET} \url{/api/v1/dashboard/stream}) auquel le navigateur reste connecte. A
+chaque fin de recalcul de risque, le meme calcul d'agregats est effectue une seule
+fois cote serveur et pousse a tous les clients connectes, qui redessinent leurs
+graphiques Chart.js sans recharger la page (\cref{fig:seq-ingestion}, etapes
+13 a 16). Ce choix evite le double ecueil du \emph{polling} (requetes repetees
+inutiles) et du rechargement manuel.
+
+\section{Assistant conversationnel (RAG)}
+
+Ce module reste, au moment de la redaction de ce rapport, au stade du developpement
+et de la conception : il s'agit d'un prototype fonctionnel demontrable, qui n'a pas
+encore fait l'objet d'un deploiement en environnement de recette (\emph{staging}) ni
+d'une campagne de validation comparable a celle menee sur le moteur de risque
+(\cref{chap:tests}).
+
+L'assistant s'appuie sur Langchain4j (\texttt{@AiService}) et sur un modele
+executes localement via Ollama (\texttt{mistral:7b}), plutot que sur une API LLM
+externe payante -- un choix coherent avec la sensibilite des donnees manipulees
+(inventaire de vulnerabilites et de criticites metier). L'architecture retenue
+privilegie le \emph{tool calling} : plutot que d'indexer les donnees dans une base
+vectorielle et de faire de la recherche par similarite, l'agent dispose d'outils
+qui executent des requetes reelles sur la base au moment ou la question l'exige,
+garantissant que les reponses portent sur l'etat courant des donnees et non sur un
+instantane potentiellement perime.
+
+\begin{lstlisting}[caption={Definition de l'agent conversationnel (AiAgentService)},label={lst:aiagent}]
+@AiService
+public interface AiAgentService {
+    @SystemMessage("""
+            You are an assistant with access to tools that query a live database.
+            When a question can be answered by a tool, you MUST invoke the tool.
+            Never describe, explain or write out the call - actually perform it.
+            Never output code.""")
+    Flux<String> chat(String question);
+}
+\end{lstlisting}
+
+\section{Conteneurisation et deploiement}
+
+Le fichier \texttt{docker-compose.yml} definit quatre services : la base
+PostgreSQL (avec \emph{healthcheck} pour garantir que le backend ne demarre qu'une
+fois la base disponible), le backend Spring Boot, le moteur Ollama (avec reservation
+GPU pour l'inference), et un conteneur ephemere \texttt{ollama-init} charge de
+telecharger automatiquement le modele au premier demarrage. Un volume nomme
+persiste les fichiers uploades (\texttt{/app/uploads}) independamment du cycle de
+vie du conteneur applicatif.

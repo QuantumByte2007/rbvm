@@ -46,4 +46,6 @@ function initDataTables() {
 $(document).ready(initDataTables);
 
 // 2. Déclenchement après un appel HTMX
-document.body.addEventListener('htmx:load', initDataTables);
+// (listen on `document`, not `document.body`: this script runs from <head>,
+// before <body> exists yet, so document.body is still null at this point)
+document.addEventListener('htmx:load', initDataTables);

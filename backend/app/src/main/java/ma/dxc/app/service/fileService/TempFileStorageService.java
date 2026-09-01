@@ -6,9 +6,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 
 public interface TempFileStorageService {
-    long store(MultipartFile file, Type type) throws IOException;
+    CompletableFuture<Long> store(MultipartFile file, Type type) throws IOException;
     Path buildFilePath(Type type) throws IOException;
     void process(Type type);
 }
