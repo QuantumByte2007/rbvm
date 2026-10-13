@@ -195,4 +195,4 @@ docs/images/       # Figures used in this README
 
 ## Author
 
-**Mohamed Amine Faik**, Cyber Defense & Embedded Telecommunication Systems engineering student, ENSA Marrakech.
+**Mohammed Amine Faik**, Cyber Defense & Embedded Telecommunication Systems engineering student, ENSA Marrakech.
