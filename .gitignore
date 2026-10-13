@@ -1,4 +1,8 @@
-/backend/datetest/
-/.env
-/.claude/
-/frontend/
+backend/datetest
+.env
+.claude
+frontend
+CMDB_Completement_Anonymisee.xlsx
+JUnit+5+migration+guide.pdf
+app_notes_dxc.txt
+rapport
